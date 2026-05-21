@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { generateQuestion, countCarries } from './questionGenerator'
+import { TRICK_BY_SLUG } from './tricks'
 import type { DifficultyBand } from './types'
 
 const BAND: DifficultyBand = { min: 15, max: 55 }
@@ -88,11 +89,13 @@ describe('generateQuestion trick tagging', () => {
     expect(tagged).toBeGreaterThan(0)
   })
 
-  it('leaves trickSlug null when no trick applies', () => {
-    for (let i = 0; i < 300; i++) {
+  it('never tags a question with a trick that does not apply', () => {
+    for (let i = 0; i < 500; i++) {
       const q = generateQuestion({ min: 1, max: 100 })
-      if (q.operation === 'subtract') {
-        expect(q.features.trickSlug).toBeNull()
+      if (q.features.trickSlug !== null) {
+        const trick = TRICK_BY_SLUG[q.features.trickSlug]
+        expect(trick).toBeDefined()
+        expect(trick.applies(q)).toBe(true)
       }
     }
   })
