@@ -7,7 +7,9 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 
-from . import db, model
+from datetime import date
+
+from . import db, model, stats
 from .models import (
     SessionCreateIn,
     SessionCreateOut,
@@ -64,6 +66,47 @@ def put_settings(body: SettingsModel) -> SettingsModel:
     try:
         db.save_settings(conn, body.model_dump())
         return body
+    finally:
+        conn.close()
+
+
+@app.get("/api/dashboard")
+def dashboard() -> dict:
+    conn = _get_conn()
+    try:
+        settings = db.load_settings(conn)
+        sessions = db.all_sessions(conn)
+        attempts = db.all_attempts(conn)
+        daily = stats.daily_aggregates(sessions)
+        today = date.today()
+        model_state = db.load_model_state(conn) or model.default_model_state()
+        series = stats.progress_series(sessions, attempts)
+        today_agg = daily.get(today.isoformat())
+        return {
+            "streak": stats.streak(daily, settings["daily_goal"], today),
+            "today": {
+                "questions": today_agg["questions"] if today_agg else 0,
+                "goal": settings["daily_goal"],
+            },
+            "rating": model_state["rating"],
+            "rating_sparkline": [p["rating"] for p in series[-12:]],
+            "heatmap": stats.heatmap(daily, today),
+            "total_sessions": len([s for s in sessions if s.get("ended_at")]),
+        }
+    finally:
+        conn.close()
+
+
+@app.get("/api/progress")
+def progress() -> dict:
+    conn = _get_conn()
+    try:
+        sessions = db.all_sessions(conn)
+        attempts = db.all_attempts(conn)
+        return {
+            "history": stats.progress_series(sessions, attempts),
+            "operation_times": stats.operation_times(attempts),
+        }
     finally:
         conn.close()
 
