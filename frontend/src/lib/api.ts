@@ -1,5 +1,6 @@
 import type {
-  Dashboard, Operation, Progress, QuestionResult, SessionPlan, Settings,
+  Dashboard, Operation, Progress, QuestionResult,
+  SessionPlan, Settings, TrickStat,
 } from './types'
 
 export interface SessionSummary {
@@ -123,4 +124,20 @@ export async function putSettings(s: Settings): Promise<void> {
     }),
   })
   if (!resp.ok) throw new Error(`putSettings failed: ${resp.status}`)
+}
+
+export async function getTricks(): Promise<TrickStat[]> {
+  const resp = await fetch('/api/tricks')
+  if (!resp.ok) throw new Error(`getTricks failed: ${resp.status}`)
+  const rows = await resp.json()
+  return rows.map((r: {
+    slug: string; attempts: number; correct: number;
+    proficiency: number; last_practiced: string | null
+  }) => ({
+    slug: r.slug,
+    attempts: r.attempts,
+    correct: r.correct,
+    proficiency: r.proficiency,
+    lastPracticed: r.last_practiced,
+  }))
 }

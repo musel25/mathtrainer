@@ -8,9 +8,12 @@ interface Props {
   onStartDrill: () => void
   onOpenProgress: () => void
   onOpenSettings: () => void
+  onOpenTricks: () => void
 }
 
-export function Dashboard({ onStartDrill, onOpenProgress, onOpenSettings }: Props) {
+export function Dashboard({
+  onStartDrill, onOpenProgress, onOpenSettings, onOpenTricks,
+}: Props) {
   const [data, setData] = useState<DashboardData | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -103,6 +106,9 @@ export function Dashboard({ onStartDrill, onOpenProgress, onOpenSettings }: Prop
       <div style={{ marginTop: 28 }}>
         <button onClick={onOpenProgress} style={{ marginRight: 12, padding: '8px 18px' }}>
           Progress
+        </button>
+        <button onClick={onOpenTricks} style={{ marginRight: 12, padding: '8px 18px' }}>
+          Tricks
         </button>
         <button onClick={onOpenSettings} style={{ padding: '8px 18px' }}>
           Settings

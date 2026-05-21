@@ -73,3 +73,11 @@ export interface Settings {
   dailyGoal: number
   sessionLength: number
 }
+
+export interface TrickStat {
+  slug: string
+  attempts: number
+  correct: number
+  proficiency: number
+  lastPracticed: string | null
+}
