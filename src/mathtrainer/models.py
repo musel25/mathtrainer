@@ -1,7 +1,7 @@
 """Request/response models for the API."""
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class AttemptIn(BaseModel):
@@ -50,3 +50,9 @@ class SessionPlan(BaseModel):
     rating: float
     target_band: DifficultyBandModel
     weak_operations: list[str]
+    session_length: int
+
+
+class SettingsModel(BaseModel):
+    daily_goal: int = Field(ge=1)
+    session_length: int = Field(ge=1)

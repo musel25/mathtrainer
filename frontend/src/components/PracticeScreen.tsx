@@ -5,14 +5,13 @@ import {
   createSession, recordResult, isComplete, type SessionState,
 } from '../lib/session'
 
-const TOTAL = 10
-
 interface Props {
   plan: SessionPlan
   onComplete: (results: QuestionResult[]) => void
 }
 
 export function PracticeScreen({ plan, onComplete }: Props) {
+  const TOTAL = plan.sessionLength
   const [session, setSession] = useState<SessionState>(() => createSession(TOTAL))
   const [question, setQuestion] = useState<Question>(
     () => generateQuestion(plan.targetBand, Math.random, plan.weakOperations),

@@ -33,3 +33,9 @@ CREATE TABLE IF NOT EXISTS model_state (
     residuals   TEXT NOT NULL,
     updated_at  TEXT
 );
+
+CREATE TABLE IF NOT EXISTS settings (
+    id              INTEGER PRIMARY KEY CHECK (id = 1),
+    daily_goal      INTEGER NOT NULL DEFAULT 20,
+    session_length  INTEGER NOT NULL DEFAULT 10
+);

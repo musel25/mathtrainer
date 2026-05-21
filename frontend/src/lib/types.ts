@@ -34,4 +34,42 @@ export interface SessionPlan {
   rating: number
   targetBand: DifficultyBand
   weakOperations: Operation[]
+  sessionLength: number
+}
+
+export interface HeatmapCell {
+  date: string
+  score: number
+  questions: number
+}
+
+export interface Dashboard {
+  streak: number
+  today: { questions: number; goal: number }
+  rating: number
+  ratingSparkline: number[]
+  heatmap: HeatmapCell[]
+  totalSessions: number
+}
+
+export interface ProgressPoint {
+  n: number
+  rating: number | null
+  score: number
+  accuracy: number
+}
+
+export interface OperationTime {
+  operation: string
+  avgMs: number
+}
+
+export interface Progress {
+  history: ProgressPoint[]
+  operationTimes: OperationTime[]
+}
+
+export interface Settings {
+  dailyGoal: number
+  sessionLength: number
 }

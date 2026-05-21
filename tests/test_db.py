@@ -88,3 +88,12 @@ def test_finalize_session_records_ratings(tmp_path):
     ).fetchone()
     assert row["rating_before"] == 50.0
     assert row["rating_after"] == 53.0
+
+
+def test_settings_defaults_and_save(tmp_path):
+    conn = _conn(tmp_path)
+    s = db.load_settings(conn)
+    assert s == {"daily_goal": 20, "session_length": 10}
+
+    db.save_settings(conn, {"daily_goal": 30, "session_length": 15})
+    assert db.load_settings(conn) == {"daily_goal": 30, "session_length": 15}

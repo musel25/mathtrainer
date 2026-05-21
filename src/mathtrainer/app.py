@@ -7,13 +7,16 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 
-from . import db, model
+from datetime import date
+
+from . import db, model, stats
 from .models import (
     SessionCreateIn,
     SessionCreateOut,
     SessionFinishIn,
     SessionPlan,
     SessionSummary,
+    SettingsModel,
 )
 
 DB_PATH = os.environ.get("MATHTRAINER_DB", str(Path.cwd() / "mathtrainer.db"))
@@ -43,7 +46,68 @@ def session_plan() -> SessionPlan:
             rating=state["rating"],
             target_band={"min": band["min"], "max": band["max"]},
             weak_operations=model.weak_operations(state),
+            session_length=db.load_settings(conn)["session_length"],
         )
+    finally:
+        conn.close()
+
+
+@app.get("/api/settings", response_model=SettingsModel)
+def get_settings() -> SettingsModel:
+    conn = _get_conn()
+    try:
+        return SettingsModel(**db.load_settings(conn))
+    finally:
+        conn.close()
+
+
+@app.put("/api/settings", response_model=SettingsModel)
+def put_settings(body: SettingsModel) -> SettingsModel:
+    conn = _get_conn()
+    try:
+        db.save_settings(conn, body.model_dump())
+        return body
+    finally:
+        conn.close()
+
+
+@app.get("/api/dashboard")
+def dashboard() -> dict:
+    conn = _get_conn()
+    try:
+        settings = db.load_settings(conn)
+        sessions = db.all_sessions(conn)
+        attempts = db.all_attempts(conn)
+        daily = stats.daily_aggregates(sessions)
+        today = date.today()
+        model_state = db.load_model_state(conn) or model.default_model_state()
+        series = stats.progress_series(sessions, attempts)
+        today_agg = daily.get(today.isoformat())
+        return {
+            "streak": stats.streak(daily, settings["daily_goal"], today),
+            "today": {
+                "questions": today_agg["questions"] if today_agg else 0,
+                "goal": settings["daily_goal"],
+            },
+            "rating": model_state["rating"],
+            "rating_sparkline": [p["rating"] for p in series[-12:]],
+            "heatmap": stats.heatmap(daily, today),
+            "total_sessions": len([s for s in sessions if s.get("ended_at")]),
+        }
+    finally:
+        conn.close()
+
+
+@app.get("/api/progress")
+def progress() -> dict:
+    conn = _get_conn()
+    try:
+        sessions = db.all_sessions(conn)
+        attempts = db.all_attempts(conn)
+        return {
+            "history": stats.progress_series(sessions, attempts),
+            "operation_times": stats.operation_times(attempts),
+        }
     finally:
         conn.close()
 
