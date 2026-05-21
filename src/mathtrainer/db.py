@@ -2,11 +2,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
 from . import model
+
+_log = logging.getLogger(__name__)
 
 _SCHEMA = Path(__file__).with_name("schema.sql")
 
@@ -29,6 +32,24 @@ def init_db(conn: sqlite3.Connection) -> None:
     _migrate(conn)
 
 
+def _backfill_operation_ratings(conn: sqlite3.Connection) -> None:
+    """One-time: reconstruct per-operation ratings from attempt history.
+    Runs exactly once, immediately after the residuals->operations rename."""
+    rows = conn.execute(
+        "SELECT operation, difficulty, is_correct, ms_to_submit "
+        "FROM attempts ORDER BY ts, id"
+    ).fetchall()
+    if not rows:
+        return
+    if conn.execute("SELECT 1 FROM model_state WHERE id = 1").fetchone() is None:
+        return
+    operations = model.backfill_operation_ratings([dict(r) for r in rows])
+    conn.execute(
+        "UPDATE model_state SET operations = ? WHERE id = 1",
+        (json.dumps(operations),),
+    )
+
+
 def _migrate(conn: sqlite3.Connection) -> None:
     """Idempotent schema migrations for databases created by older versions."""
     cols = {r["name"] for r in conn.execute("PRAGMA table_info(sessions)")}
@@ -42,6 +63,17 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute(
             "ALTER TABLE model_state RENAME COLUMN residuals TO operations"
         )
+        # The rename and the backfill UPDATE are committed together by the
+        # conn.commit() below. If the backfill fails, the app must still start
+        # — per-operation ratings fall back to defaults — so the failure is
+        # caught and logged while conn.commit() still commits the rename.
+        try:
+            _backfill_operation_ratings(conn)
+        except Exception:
+            _log.warning(
+                "operation-ratings backfill failed; ratings start at defaults",
+                exc_info=True,
+            )
     conn.commit()
 
 

@@ -154,3 +154,20 @@ def test_weak_operations_ignores_operations_below_min_samples():
     for _ in range(model.WEAK_MIN_SAMPLES - 1):
         s, _ = model.process_attempt(s, "divide", 45, is_correct=False, solve_ms=9000)
     assert "divide" not in model.weak_operations(s)
+
+
+def test_backfill_operation_ratings_replays_history():
+    attempts = [
+        {"operation": "divide", "difficulty": 45.0,
+         "is_correct": 0, "ms_to_submit": 9000}
+        for _ in range(15)
+    ]
+    ops = model.backfill_operation_ratings(attempts)
+    assert ops["divide"]["count"] == 15
+    assert ops["divide"]["rating"] < model.DEFAULT_RATING
+    assert ops["add"]["rating"] == model.DEFAULT_RATING
+
+
+def test_backfill_operation_ratings_empty_history():
+    ops = model.backfill_operation_ratings([])
+    assert ops == model.default_model_state()["operations"]

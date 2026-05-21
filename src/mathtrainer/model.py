@@ -166,3 +166,21 @@ def target_band(state: dict) -> dict:
         "min": max(1.0, r - 10.0),
         "max": min(100.0, r + 20.0),
     }
+
+
+def backfill_operation_ratings(attempts: list[dict]) -> dict:
+    """Replays a chronological list of attempt rows through the model to
+    reconstruct per-operation ratings for a database that predates them.
+    Each row needs: operation, difficulty, is_correct, ms_to_submit.
+    Returns the `operations` map ({operation: {"rating", "count"}}).
+
+    Note: the solve-time bins are rebuilt from scratch during replay, so the
+    expected-time thresholds for the earliest attempts use the default baseline
+    curve rather than the user's live values; ratings converge quickly."""
+    state = default_model_state()
+    for a in attempts:
+        state, _ = process_attempt(
+            state, a["operation"], float(a["difficulty"]),
+            bool(a["is_correct"]), float(a["ms_to_submit"]),
+        )
+    return state["operations"]

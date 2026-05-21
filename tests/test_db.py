@@ -155,3 +155,47 @@ def test_model_state_migration_renames_residuals_column(tmp_path):
     assert "residuals" not in cols
     state = db.load_model_state(conn)
     assert state is not None and set(state["operations"]) == set(model.OPERATIONS)
+
+
+def test_migration_backfills_operation_ratings_from_attempts(tmp_path):
+    conn = _legacy_conn(tmp_path)
+    conn.execute(
+        "INSERT INTO model_state (id, rating, bins, residuals) "
+        "VALUES (1, 50.0, '[]', '{}')"
+    )
+    conn.execute(
+        "INSERT INTO sessions (mode, started_at) "
+        "VALUES ('daily', '2026-05-01T10:00:00+00:00')"
+    )
+    for i in range(12):
+        conn.execute(
+            "INSERT INTO attempts (session_id, ts, operation, operands, "
+            "correct_answer, given_answer, is_correct, difficulty, features, "
+            "ms_to_submit) VALUES (1, ?, 'divide', '[12,3]', 4, 9, 0, 45.0, "
+            "'{}', 9000)",
+            (f"2026-05-01T10:{i:02d}:00+00:00",),
+        )
+    conn.commit()
+    db._migrate(conn)
+    state = db.load_model_state(conn)
+    assert state["operations"]["divide"]["count"] == 12
+    assert state["operations"]["divide"]["rating"] < 50.0
+    assert state["operations"]["add"]["rating"] == 50.0
+
+
+def test_migration_skips_backfill_when_no_model_state_row(tmp_path):
+    conn = _legacy_conn(tmp_path)
+    # legacy DB with attempts but no model_state row
+    conn.execute(
+        "INSERT INTO sessions (mode, started_at) "
+        "VALUES ('daily', '2026-05-01T10:00:00+00:00')"
+    )
+    conn.execute(
+        "INSERT INTO attempts (session_id, ts, operation, operands, "
+        "correct_answer, given_answer, is_correct, difficulty, features, "
+        "ms_to_submit) VALUES (1, '2026-05-01T10:00:00+00:00', 'add', "
+        "'[1,2]', 3, 3, 1, 20.0, '{}', 1200)"
+    )
+    conn.commit()
+    db._migrate(conn)  # must not raise
+    assert conn.execute("SELECT COUNT(*) FROM model_state").fetchone()[0] == 0
