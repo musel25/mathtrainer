@@ -22,8 +22,8 @@ def get_connection(db_path: str | Path) -> sqlite3.Connection:
 
 
 def init_db(conn: sqlite3.Connection) -> None:
+    # executescript() issues an implicit COMMIT; no explicit commit needed.
     conn.executescript(_SCHEMA.read_text())
-    conn.commit()
 
 
 def create_session(conn: sqlite3.Connection, mode: str) -> int:

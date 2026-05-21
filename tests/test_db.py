@@ -44,7 +44,9 @@ def test_insert_attempts_batch(tmp_path):
     ]
     db.insert_attempts(conn, session_id, attempts)
     row = conn.execute(
-        "SELECT operation, operands, is_correct, features FROM attempts"
+        "SELECT operation, operands, is_correct, features FROM attempts "
+        "WHERE session_id = ?",
+        (session_id,),
     ).fetchone()
     assert row["operation"] == "add"
     assert json.loads(row["operands"]) == [12, 34]
