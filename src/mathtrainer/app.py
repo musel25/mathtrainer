@@ -157,6 +157,8 @@ def finish_session(session_id: int, body: SessionFinishIn) -> SessionSummary:
             state, score = model.process_attempt(
                 state, a.operation, a.difficulty, a.is_correct, a.ms_to_submit,
             )
+            if a.trick_slug:
+                db.record_trick_attempt(conn, a.trick_slug, a.is_correct)
             row = a.model_dump()
             row["score"] = score
             attempts.append(row)
