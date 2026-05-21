@@ -68,3 +68,11 @@ def finish_session(session_id: int, body: SessionFinishIn) -> SessionSummary:
         )
     finally:
         conn.close()
+
+
+# --- Static SPA mount (must be last: it catches all non-/api routes) ---
+_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+if _DIST.is_dir():
+    from fastapi.staticfiles import StaticFiles
+
+    app.mount("/", StaticFiles(directory=str(_DIST), html=True), name="spa")
