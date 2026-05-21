@@ -24,6 +24,17 @@ def get_connection(db_path: str | Path) -> sqlite3.Connection:
 def init_db(conn: sqlite3.Connection) -> None:
     # executescript() issues an implicit COMMIT; no explicit commit needed.
     conn.executescript(_SCHEMA.read_text())
+    _migrate(conn)
+
+
+def _migrate(conn: sqlite3.Connection) -> None:
+    """Idempotent schema migrations for databases created by older versions."""
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(sessions)")}
+    if "rating_before" not in cols:
+        conn.execute("ALTER TABLE sessions ADD COLUMN rating_before REAL")
+    if "rating_after" not in cols:
+        conn.execute("ALTER TABLE sessions ADD COLUMN rating_after REAL")
+    conn.commit()
 
 
 def create_session(conn: sqlite3.Connection, mode: str) -> int:
@@ -47,11 +58,13 @@ def finalize_session(
     session_id: int,
     n_questions: int,
     total_score: float,
+    rating_before: float | None = None,
+    rating_after: float | None = None,
 ) -> None:
     conn.execute(
-        "UPDATE sessions SET ended_at = ?, n_questions = ?, total_score = ? "
-        "WHERE id = ?",
-        (_now(), n_questions, total_score, session_id),
+        "UPDATE sessions SET ended_at = ?, n_questions = ?, total_score = ?, "
+        "rating_before = ?, rating_after = ? WHERE id = ?",
+        (_now(), n_questions, total_score, rating_before, rating_after, session_id),
     )
     conn.commit()
 
@@ -85,5 +98,31 @@ def insert_attempts(
         "ms_to_first_key, ms_to_submit, trick_slug, score) "
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         rows,
+    )
+    conn.commit()
+
+
+def load_model_state(conn: sqlite3.Connection) -> dict | None:
+    row = conn.execute(
+        "SELECT rating, bins, residuals FROM model_state WHERE id = 1"
+    ).fetchone()
+    if row is None:
+        return None
+    return {
+        "rating": row["rating"],
+        "bins": json.loads(row["bins"]),
+        "residuals": json.loads(row["residuals"]),
+    }
+
+
+def save_model_state(conn: sqlite3.Connection, state: dict) -> None:
+    conn.execute(
+        "INSERT INTO model_state (id, rating, bins, residuals, updated_at) "
+        "VALUES (1, ?, ?, ?, ?) "
+        "ON CONFLICT(id) DO UPDATE SET rating = excluded.rating, "
+        "bins = excluded.bins, residuals = excluded.residuals, "
+        "updated_at = excluded.updated_at",
+        (state["rating"], json.dumps(state["bins"]),
+         json.dumps(state["residuals"]), _now()),
     )
     conn.commit()
