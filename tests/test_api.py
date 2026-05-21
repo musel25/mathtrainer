@@ -82,7 +82,11 @@ def test_session_plan_default_for_fresh_db(client):
     body = resp.json()
     assert body["rating"] == 50.0
     assert body["target_band"]["min"] < body["target_band"]["max"]
-    assert body["weak_operations"] == []
+    ratings = body["operation_ratings"]
+    assert set(ratings) == {
+        "add", "subtract", "multiply", "divide", "square", "percent",
+    }
+    assert ratings["add"] == 50.0
     assert body["session_length"] == 10
 
 
@@ -133,6 +137,11 @@ def test_progress_reports_history(client):
     assert len(body["history"]) == 2
     assert [p["n"] for p in body["history"]] == [1, 2]
     assert isinstance(body["operation_times"], list)
+    op_ratings = body["operation_ratings"]
+    assert set(op_ratings) == {
+        "add", "subtract", "multiply", "divide", "square", "percent",
+    }
+    assert all(1.0 <= v <= 100.0 for v in op_ratings.values())
 
 
 def test_tricks_endpoint_reports_proficiency(client):
@@ -159,3 +168,13 @@ def test_tricks_endpoint_reports_proficiency(client):
     assert tricks["times-11"]["attempts"] == 2
     assert tricks["times-11"]["correct"] == 1
     assert tricks["times-11"]["proficiency"] == 0.5
+
+
+def test_progress_includes_operation_ratings(client):
+    resp = client.get("/api/progress")
+    assert resp.status_code == 200
+    ratings = resp.json()["operation_ratings"]
+    assert set(ratings) == {
+        "add", "subtract", "multiply", "divide", "square", "percent",
+    }
+    assert all(1.0 <= v <= 100.0 for v in ratings.values())

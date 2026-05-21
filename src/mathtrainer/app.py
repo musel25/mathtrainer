@@ -45,7 +45,7 @@ def session_plan() -> SessionPlan:
         return SessionPlan(
             rating=state["rating"],
             target_band={"min": band["min"], "max": band["max"]},
-            weak_operations=model.weak_operations(state),
+            operation_ratings=model.operation_ratings(state),
             session_length=db.load_settings(conn)["session_length"],
         )
     finally:
@@ -104,9 +104,11 @@ def progress() -> dict:
     try:
         sessions = db.all_sessions(conn)
         attempts = db.all_attempts(conn)
+        state = db.load_model_state(conn) or model.default_model_state()
         return {
             "history": stats.progress_series(sessions, attempts),
             "operation_times": stats.operation_times(attempts),
+            "operation_ratings": model.operation_ratings(state),
         }
     finally:
         conn.close()
