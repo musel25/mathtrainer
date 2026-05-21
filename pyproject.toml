@@ -1,7 +1,7 @@
 [project]
 name = "mathtrainer"
 version = "0.1.0"
-description = "Add your description here"
+description = "Local single-user mental-math trainer with an adaptive personal difficulty model"
 readme = "README.md"
 authors = [
     { name = "Musel25", email = "muselemmanuel@hotmail.com" }

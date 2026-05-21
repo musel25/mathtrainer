@@ -1,4 +1,4 @@
-"""FastAPI application: API routes and (in Task 4) the SPA mount."""
+"""FastAPI application: API routes and the static SPA mount."""
 from __future__ import annotations
 
 import os
