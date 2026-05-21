@@ -1,21 +1,20 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import type { Question, QuestionResult, SessionPlan } from '../lib/types'
-import { generateQuestion } from '../lib/questionGenerator'
+import type { Question, QuestionResult } from '../lib/types'
 import {
   createSession, recordResult, isComplete, type SessionState,
 } from '../lib/session'
+import { TRICK_BY_SLUG } from '../lib/tricks'
 
 interface Props {
-  plan: SessionPlan
+  questionSource: () => Question
+  total: number
   onComplete: (results: QuestionResult[]) => void
 }
 
-export function PracticeScreen({ plan, onComplete }: Props) {
-  const TOTAL = plan.sessionLength
+export function PracticeScreen({ questionSource, total, onComplete }: Props) {
+  const TOTAL = total
   const [session, setSession] = useState<SessionState>(() => createSession(TOTAL))
-  const [question, setQuestion] = useState<Question>(
-    () => generateQuestion(plan.targetBand, Math.random, plan.weakOperations),
-  )
+  const [question, setQuestion] = useState<Question>(() => questionSource())
   const [input, setInput] = useState('')
   const [feedback, setFeedback] = useState<null | 'correct' | string>(null)
   const [elapsed, setElapsed] = useState(0)
@@ -55,7 +54,7 @@ export function PracticeScreen({ plan, onComplete }: Props) {
       onComplete(updated.results)
       return
     }
-    setQuestion(generateQuestion(plan.targetBand, Math.random, plan.weakOperations))
+    setQuestion(questionSource())
     setInput('')
     setFeedback(null)
     firstKeyAt.current = null
@@ -124,6 +123,11 @@ export function PracticeScreen({ plan, onComplete }: Props) {
         {feedback === 'correct' && <span style={{ color: 'green' }}>✓</span>}
         {feedback && feedback !== 'correct' && (
           <span style={{ color: 'crimson' }}>{feedback}</span>
+        )}
+      </div>
+      <div style={{ height: 28, marginTop: 4, color: '#a6611a' }}>
+        {feedback !== null && question.features.trickSlug && (
+          <span>💡 {TRICK_BY_SLUG[question.features.trickSlug]?.tip}</span>
         )}
       </div>
     </div>

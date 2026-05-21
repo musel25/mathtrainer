@@ -3,9 +3,10 @@ from datetime import date
 from mathtrainer import stats
 
 
-def _session(id, ended_date, n_questions, score, rating_after, started=None):
+def _session(id, ended_date, n_questions, score, rating_after,
+             started=None, mode="daily"):
     return {
-        "id": id, "mode": "daily",
+        "id": id, "mode": mode,
         "started_at": (started or f"{ended_date}T12:00:00+00:00"),
         "ended_at": f"{ended_date}T12:05:00+00:00",
         "n_questions": n_questions, "total_score": score,
@@ -85,3 +86,13 @@ def test_empty_inputs_return_empty_results():
             "2026-05-18", "2026-05-19", "2026-05-20",
         ]
     ]
+
+
+def test_daily_aggregates_excludes_learn_sessions():
+    sessions = [
+        _session(1, "2026-05-20", 10, 100.0, 51, mode="daily"),
+        _session(2, "2026-05-20", 8, 80.0, 52, mode="learn"),
+    ]
+    daily = stats.daily_aggregates(sessions)
+    # only the daily session's 10 questions count — not the learn session's 8
+    assert daily["2026-05-20"]["questions"] == 10

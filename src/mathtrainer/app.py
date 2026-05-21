@@ -112,6 +112,25 @@ def progress() -> dict:
         conn.close()
 
 
+@app.get("/api/tricks")
+def tricks() -> list[dict]:
+    conn = _get_conn()
+    try:
+        out = []
+        for t in db.all_trick_state(conn):
+            attempts = t["attempts"]
+            out.append({
+                "slug": t["slug"],
+                "attempts": attempts,
+                "correct": t["correct"],
+                "proficiency": (t["correct"] / attempts) if attempts else 0.0,
+                "last_practiced": t["last_practiced"],
+            })
+        return out
+    finally:
+        conn.close()
+
+
 @app.post("/api/sessions", response_model=SessionCreateOut)
 def create_session(body: SessionCreateIn) -> SessionCreateOut:
     conn = _get_conn()
@@ -138,6 +157,8 @@ def finish_session(session_id: int, body: SessionFinishIn) -> SessionSummary:
             state, score = model.process_attempt(
                 state, a.operation, a.difficulty, a.is_correct, a.ms_to_submit,
             )
+            if a.trick_slug:
+                db.record_trick_attempt(conn, a.trick_slug, a.is_correct)
             row = a.model_dump()
             row["score"] = score
             attempts.append(row)

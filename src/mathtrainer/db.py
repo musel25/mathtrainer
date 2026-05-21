@@ -163,3 +163,23 @@ def all_attempts(conn: sqlite3.Connection) -> list[dict]:
         "SELECT session_id, operation, is_correct, ms_to_submit FROM attempts"
     ).fetchall()
     return [dict(r) for r in rows]
+
+
+def record_trick_attempt(
+    conn: sqlite3.Connection, slug: str, is_correct: bool
+) -> None:
+    conn.execute(
+        "INSERT INTO trick_state (slug, attempts, correct, last_practiced) "
+        "VALUES (?, 1, ?, ?) "
+        "ON CONFLICT(slug) DO UPDATE SET attempts = attempts + 1, "
+        "correct = correct + ?, last_practiced = ?",
+        (slug, 1 if is_correct else 0, _now(), 1 if is_correct else 0, _now()),
+    )
+    conn.commit()
+
+
+def all_trick_state(conn: sqlite3.Connection) -> list[dict]:
+    rows = conn.execute(
+        "SELECT slug, attempts, correct, last_practiced FROM trick_state"
+    ).fetchall()
+    return [dict(r) for r in rows]

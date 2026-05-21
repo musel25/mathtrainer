@@ -1,5 +1,6 @@
 import type { DifficultyBand, Operation, Question } from './types'
 import { computeDifficulty } from './difficulty'
+import { detectTrick } from './tricks'
 
 type Rng = () => number
 
@@ -123,6 +124,7 @@ export function generateQuestion(
 
   for (let i = 0; i < MAX_TRIES; i++) {
     const raw = buildRaw(rng, pick(rng, pool))
+    raw.features.trickSlug = detectTrick(raw)
     const difficulty = computeDifficulty(raw.features)
     const candidate: Question = { ...raw, difficulty }
 

@@ -17,10 +17,14 @@ def _date_of(iso_ts: str) -> str:
 
 
 def daily_aggregates(sessions: list[dict]) -> dict[str, dict]:
-    """Maps date string -> {questions, score, minutes} over finished sessions."""
+    """Maps date string -> {questions, score, minutes} over finished DAILY
+    sessions. Learn-mode sessions are excluded — only the daily drill counts
+    toward the habit streak, goal, and heatmap."""
     out: dict[str, dict] = {}
     for s in sessions:
         if not s.get("ended_at"):
+            continue
+        if s.get("mode") != "daily":
             continue
         day = _date_of(s["ended_at"])   # credit the session to the day it ended
         agg = out.setdefault(day, {"questions": 0, "score": 0.0, "minutes": 0.0})

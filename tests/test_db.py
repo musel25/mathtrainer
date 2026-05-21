@@ -97,3 +97,19 @@ def test_settings_defaults_and_save(tmp_path):
 
     db.save_settings(conn, {"daily_goal": 30, "session_length": 15})
     assert db.load_settings(conn) == {"daily_goal": 30, "session_length": 15}
+
+
+def test_trick_state_record_and_read(tmp_path):
+    conn = _conn(tmp_path)
+    assert db.all_trick_state(conn) == []
+
+    db.record_trick_attempt(conn, "times-11", is_correct=True)
+    db.record_trick_attempt(conn, "times-11", is_correct=False)
+    db.record_trick_attempt(conn, "times-9", is_correct=True)
+
+    state = {t["slug"]: t for t in db.all_trick_state(conn)}
+    assert state["times-11"]["attempts"] == 2
+    assert state["times-11"]["correct"] == 1
+    assert state["times-9"]["attempts"] == 1
+    assert state["times-9"]["correct"] == 1
+    assert state["times-11"]["last_practiced"] is not None
