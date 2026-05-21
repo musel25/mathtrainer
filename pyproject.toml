@@ -1,7 +1,7 @@
 [project]
 name = "mathtrainer"
 version = "0.1.0"
-description = "Add your description here"
+description = "Local single-user mental-math trainer with an adaptive personal difficulty model"
 readme = "README.md"
 authors = [
     { name = "Musel25", email = "muselemmanuel@hotmail.com" }
@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-mathtrainer = "mathtrainer:main"
+mathtrainer = "mathtrainer.cli:main"
 
 [build-system]
 requires = ["uv_build>=0.8.22,<0.9.0"]

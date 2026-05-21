@@ -9,6 +9,15 @@ implementation plans.
 
 ## Run
 
+Build the frontend once — the app serves the SPA from `frontend/dist/`, which
+is not checked in:
+
+```
+cd frontend && npm install && npm run build
+```
+
+Then start the app from the repo root:
+
 ```
 uv run mathtrainer
 ```
