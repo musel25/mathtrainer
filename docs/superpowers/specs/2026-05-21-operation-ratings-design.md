@@ -105,8 +105,9 @@ avoids two competing notions of per-operation skill.
   `generateQuestion` call inside `handleStart`. Learn mode is unaffected (it
   calls `trick.generate` directly).
 - `frontend/src/components/ProgressPage.tsx`: new **"Ability by operation"**
-  section — a horizontal recharts `BarChart`, one bar per operation, value =
-  rating, value axis domain `[0, 100]`. `recharts` is already imported.
+  section — a recharts `BarChart`, one bar per operation (operation on the X
+  axis, rating on the Y axis, domain `[0, 100]`), styled to match the adjacent
+  "Average time per operation" chart. `recharts` is already imported.
 
 ### 5. Testing
 
