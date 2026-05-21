@@ -6,8 +6,8 @@ from mathtrainer import stats
 def _session(id, ended_date, n_questions, score, rating_after, started=None):
     return {
         "id": id, "mode": "daily",
-        "started_at": (started or f"{ended_date}T10:00:00+00:00"),
-        "ended_at": f"{ended_date}T10:05:00+00:00",
+        "started_at": (started or f"{ended_date}T12:00:00+00:00"),
+        "ended_at": f"{ended_date}T12:05:00+00:00",
         "n_questions": n_questions, "total_score": score,
         "rating_before": rating_after - 1, "rating_after": rating_after,
     }

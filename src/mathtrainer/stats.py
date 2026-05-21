@@ -8,8 +8,12 @@ from datetime import date, datetime, timedelta
 
 
 def _date_of(iso_ts: str) -> str:
-    """The 'YYYY-MM-DD' part of an ISO timestamp."""
-    return iso_ts[:10]
+    """The local-time calendar date ('YYYY-MM-DD') of an ISO timestamp.
+
+    Timestamps are stored in UTC; the habit "day" is the user's *local* day,
+    so convert before taking the date — otherwise a late-evening session can
+    land on the wrong calendar day off UTC."""
+    return datetime.fromisoformat(iso_ts).astimezone().date().isoformat()
 
 
 def daily_aggregates(sessions: list[dict]) -> dict[str, dict]:

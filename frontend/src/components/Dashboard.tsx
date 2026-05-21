@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Dashboard as DashboardData } from '../lib/types'
 import { getDashboard } from '../lib/api'
 import { CalendarHeatmap } from './CalendarHeatmap'
+import { Line, LineChart } from 'recharts'
 
 interface Props {
   onStartDrill: () => void
@@ -55,6 +56,28 @@ export function Dashboard({ onStartDrill, onOpenProgress, onOpenSettings }: Prop
           <div style={{ color: '#888' }}>sessions</div>
         </div>
       </div>
+
+      {data.ratingSparkline.length > 1 && (
+        <div style={{ margin: '8px 0' }}>
+          <div style={{ color: '#888', marginBottom: 2 }}>Rating trend</div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <LineChart
+              width={240}
+              height={48}
+              data={data.ratingSparkline.map((r, i) => ({ i, rating: r }))}
+            >
+              <Line
+                type="monotone"
+                dataKey="rating"
+                stroke="#239a3b"
+                strokeWidth={2}
+                dot={false}
+                isAnimationActive={false}
+              />
+            </LineChart>
+          </div>
+        </div>
+      )}
 
       <div style={{ margin: '20px 0' }}>
         <div style={{ color: '#888', marginBottom: 4 }}>
