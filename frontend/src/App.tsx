@@ -1,20 +1,29 @@
 import { useState } from 'react'
-import type { QuestionResult, SessionPlan } from './lib/types'
+import type { Question, QuestionResult } from './lib/types'
 import {
   startSession, finishSession, getSessionPlan, type SessionSummary,
 } from './lib/api'
+import { generateQuestion } from './lib/questionGenerator'
+import type { Trick } from './lib/tricks'
 import { Dashboard } from './components/Dashboard'
 import { PracticeScreen } from './components/PracticeScreen'
 import { SummaryScreen } from './components/SummaryScreen'
 import { ProgressPage } from './components/ProgressPage'
 import { SettingsPage } from './components/SettingsPage'
+import { TricksPage } from './components/TricksPage'
 
 type Screen =
-  | 'dashboard' | 'loading' | 'practice' | 'summary' | 'progress' | 'settings'
+  | 'dashboard' | 'loading' | 'practice' | 'summary'
+  | 'progress' | 'settings' | 'tricks'
+
+interface Practice {
+  source: () => Question
+  total: number
+}
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('dashboard')
-  const [plan, setPlan] = useState<SessionPlan | null>(null)
+  const [practice, setPractice] = useState<Practice | null>(null)
   const [results, setResults] = useState<QuestionResult[]>([])
   const [summary, setSummary] = useState<SessionSummary | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -23,12 +32,22 @@ export default function App() {
     setScreen('loading')
     setError(null)
     try {
-      setPlan(await getSessionPlan())
+      const plan = await getSessionPlan()
+      setPractice({
+        source: () =>
+          generateQuestion(plan.targetBand, Math.random, plan.weakOperations),
+        total: plan.sessionLength,
+      })
       setScreen('practice')
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
       setScreen('dashboard')
     }
+  }
+
+  function handleLearn(trick: Trick) {
+    setPractice({ source: () => trick.generate(Math.random), total: 8 })
+    setScreen('practice')
   }
 
   async function handleComplete(finished: QuestionResult[]) {
@@ -47,8 +66,14 @@ export default function App() {
   if (screen === 'loading') {
     return <div style={{ textAlign: 'center', marginTop: '20vh' }}>Loading…</div>
   }
-  if (screen === 'practice' && plan) {
-    return <PracticeScreen plan={plan} onComplete={handleComplete} />
+  if (screen === 'practice' && practice) {
+    return (
+      <PracticeScreen
+        questionSource={practice.source}
+        total={practice.total}
+        onComplete={handleComplete}
+      />
+    )
   }
   if (screen === 'summary') {
     return (
@@ -66,11 +91,17 @@ export default function App() {
   if (screen === 'settings') {
     return <SettingsPage onBack={() => setScreen('dashboard')} />
   }
+  if (screen === 'tricks') {
+    return (
+      <TricksPage onBack={() => setScreen('dashboard')} onLearn={handleLearn} />
+    )
+  }
   return (
     <Dashboard
       onStartDrill={handleStart}
       onOpenProgress={() => setScreen('progress')}
       onOpenSettings={() => setScreen('settings')}
+      onOpenTricks={() => setScreen('tricks')}
     />
   )
 }
