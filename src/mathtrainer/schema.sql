@@ -1,10 +1,12 @@
 CREATE TABLE IF NOT EXISTS sessions (
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    mode         TEXT    NOT NULL,
-    started_at   TEXT    NOT NULL,
-    ended_at     TEXT,
-    n_questions  INTEGER NOT NULL DEFAULT 0,
-    total_score  REAL    NOT NULL DEFAULT 0
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    mode           TEXT    NOT NULL,
+    started_at     TEXT    NOT NULL,
+    ended_at       TEXT,
+    n_questions    INTEGER NOT NULL DEFAULT 0,
+    total_score    REAL    NOT NULL DEFAULT 0,
+    rating_before  REAL,
+    rating_after   REAL
 );
 
 CREATE TABLE IF NOT EXISTS attempts (
