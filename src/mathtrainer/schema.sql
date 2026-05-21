@@ -39,3 +39,10 @@ CREATE TABLE IF NOT EXISTS settings (
     daily_goal      INTEGER NOT NULL DEFAULT 20,
     session_length  INTEGER NOT NULL DEFAULT 10
 );
+
+CREATE TABLE IF NOT EXISTS trick_state (
+    slug            TEXT PRIMARY KEY,
+    attempts        INTEGER NOT NULL DEFAULT 0,
+    correct         INTEGER NOT NULL DEFAULT 0,
+    last_practiced  TEXT
+);

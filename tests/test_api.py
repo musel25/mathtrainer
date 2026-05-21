@@ -133,3 +133,29 @@ def test_progress_reports_history(client):
     assert len(body["history"]) == 2
     assert [p["n"] for p in body["history"]] == [1, 2]
     assert isinstance(body["operation_times"], list)
+
+
+def test_tricks_endpoint_reports_proficiency(client):
+    assert client.get("/api/tricks").json() == []
+
+    sid = client.post("/api/sessions", json={"mode": "daily"}).json()["id"]
+    attempts = [
+        {
+            "operation": "multiply", "operands": [35, 11], "correct_answer": 385,
+            "given_answer": 385, "is_correct": True, "difficulty": 40.0,
+            "features": {}, "ms_to_first_key": 400, "ms_to_submit": 1500,
+            "trick_slug": "times-11", "score": 0.0,
+        },
+        {
+            "operation": "multiply", "operands": [42, 11], "correct_answer": 462,
+            "given_answer": 99, "is_correct": False, "difficulty": 40.0,
+            "features": {}, "ms_to_first_key": 400, "ms_to_submit": 1500,
+            "trick_slug": "times-11", "score": 0.0,
+        },
+    ]
+    client.post(f"/api/sessions/{sid}/finish", json={"attempts": attempts})
+
+    tricks = {t["slug"]: t for t in client.get("/api/tricks").json()}
+    assert tricks["times-11"]["attempts"] == 2
+    assert tricks["times-11"]["correct"] == 1
+    assert tricks["times-11"]["proficiency"] == 0.5
