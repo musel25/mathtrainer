@@ -71,3 +71,17 @@ def test_progress_series_and_operation_times():
     op_times = {o["operation"]: o["avg_ms"] for o in stats.operation_times(attempts)}
     assert op_times["add"] == 2000.0
     assert op_times["multiply"] == 5000.0
+
+
+def test_empty_inputs_return_empty_results():
+    assert stats.daily_aggregates([]) == {}
+    assert stats.streak({}, goal=10, today=date(2026, 5, 20)) == 0
+    assert stats.progress_series([], []) == []
+    assert stats.operation_times([]) == []
+    assert stats.heatmap({}, today=date(2026, 5, 20), days=7) == [
+        {"date": d, "score": 0.0, "questions": 0}
+        for d in [
+            "2026-05-14", "2026-05-15", "2026-05-16", "2026-05-17",
+            "2026-05-18", "2026-05-19", "2026-05-20",
+        ]
+    ]

@@ -18,7 +18,7 @@ def daily_aggregates(sessions: list[dict]) -> dict[str, dict]:
     for s in sessions:
         if not s.get("ended_at"):
             continue
-        day = _date_of(s["ended_at"])
+        day = _date_of(s["ended_at"])   # credit the session to the day it ended
         agg = out.setdefault(day, {"questions": 0, "score": 0.0, "minutes": 0.0})
         agg["questions"] += s["n_questions"]
         agg["score"] += s["total_score"]
@@ -33,7 +33,10 @@ def daily_aggregates(sessions: list[dict]) -> dict[str, dict]:
 
 def streak(daily: dict[str, dict], goal: int, today: date) -> int:
     """Consecutive days, ending at `today`, whose question count met `goal`.
-    An as-yet-unmet `today` does not break a streak earned through yesterday."""
+
+    Today is treated as still in progress: an unmet `today` — whether untouched
+    or only partially done — does not break a streak earned through yesterday.
+    A gap (unmet day) on any day *before* today ends the streak."""
     count = 0
     day = today
     while True:
