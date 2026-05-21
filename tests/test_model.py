@@ -89,3 +89,27 @@ def test_state_is_json_round_trippable():
     s = model.default_model_state()
     s, _ = model.process_attempt(s, "multiply", 60, is_correct=True, solve_ms=4000)
     assert json.loads(json.dumps(s)) == s
+
+
+def test_wrong_answer_does_not_update_residuals_or_bins():
+    s = model.default_model_state()
+    s2, _ = model.process_attempt(s, "add", 45, is_correct=False, solve_ms=500)
+    assert s2["bins"][4]["count"] == 0
+    assert s2["residuals"]["add"]["count"] == 0
+
+
+def test_score_at_spread_floor_is_well_behaved():
+    s = model.default_model_state()
+    for _ in range(100):
+        s, _ = model.process_attempt(s, "add", 45, is_correct=True, solve_ms=5200)
+    assert model.spread(s, 45) == model.MIN_SPREAD_MS
+    score = model.score_attempt(s, 45, is_correct=True, solve_ms=4800)
+    assert 0.5 * 45 <= score <= 1.5 * 45
+    assert not math.isnan(score)
+
+
+def test_weak_operations_respects_min_samples_threshold():
+    s = model.default_model_state()
+    for _ in range(model.WEAK_MIN_SAMPLES - 1):
+        s, _ = model.process_attempt(s, "divide", 45, is_correct=True, solve_ms=30000)
+    assert "divide" not in model.weak_operations(s)

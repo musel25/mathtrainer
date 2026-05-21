@@ -64,7 +64,7 @@ def spread(state: dict, difficulty: float) -> float:
 
 def _speed_factor(z: float) -> float:
     """Bounded reward for beating your baseline. z>0 means faster than expected.
-    Returns a value in (0.5, 1.5)."""
+    Returns a value in [0.5, 1.5] (tanh saturates to ±1.0 for large |z|)."""
     return 1.0 + 0.5 * math.tanh(z)
 
 
@@ -142,8 +142,8 @@ def weak_operations(state: dict) -> list[str]:
 
 
 def target_band(state: dict) -> dict:
-    """The difficulty band to aim the next session at — just above the rating,
-    the edge-of-ability zone where learning is fastest."""
+    """The difficulty band to aim the next session at — centered just above the
+    rating (10 below to 20 above), the edge-of-ability zone for fastest learning."""
     r = state["rating"]
     return {
         "min": max(1.0, r - 10.0),
