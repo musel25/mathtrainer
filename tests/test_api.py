@@ -7,9 +7,13 @@ from mathtrainer import db
 
 @pytest.fixture
 def client(tmp_path, monkeypatch):
-    conn = db.get_connection(tmp_path / "api.db")
+    db_path = tmp_path / "api.db"
+    conn = db.get_connection(db_path)
     db.init_db(conn)
-    monkeypatch.setattr(app_module, "_get_conn", lambda: conn)
+    conn.close()
+    monkeypatch.setattr(
+        app_module, "_get_conn", lambda: db.get_connection(db_path)
+    )
     return TestClient(app_module.app)
 
 
@@ -44,3 +48,8 @@ def test_finish_session_persists_and_summarizes(client):
     assert body["n_correct"] == 1
     assert body["accuracy"] == 0.5
     assert body["total_score"] == 21.0
+
+
+def test_finish_session_404_on_unknown_session(client):
+    resp = client.post("/api/sessions/9999/finish", json={"attempts": []})
+    assert resp.status_code == 404

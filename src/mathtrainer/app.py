@@ -35,32 +35,36 @@ def health() -> dict:
 @app.post("/api/sessions", response_model=SessionCreateOut)
 def create_session(body: SessionCreateIn) -> SessionCreateOut:
     conn = _get_conn()
-    session_id = db.create_session(conn, mode=body.mode)
-    return SessionCreateOut(id=session_id)
+    try:
+        session_id = db.create_session(conn, mode=body.mode)
+        return SessionCreateOut(id=session_id)
+    finally:
+        conn.close()
 
 
 @app.post("/api/sessions/{session_id}/finish", response_model=SessionSummary)
 def finish_session(session_id: int, body: SessionFinishIn) -> SessionSummary:
     conn = _get_conn()
-    exists = conn.execute(
-        "SELECT 1 FROM sessions WHERE id = ?", (session_id,)
-    ).fetchone()
-    if exists is None:
-        raise HTTPException(status_code=404, detail="session not found")
+    try:
+        if not db.session_exists(conn, session_id):
+            raise HTTPException(status_code=404, detail="session not found")
 
-    attempts = [a.model_dump() for a in body.attempts]
-    db.insert_attempts(conn, session_id, attempts)
+        n_questions = len(body.attempts)
+        n_correct = sum(1 for a in body.attempts if a.is_correct)
+        total_score = sum(a.score for a in body.attempts)
 
-    n_questions = len(attempts)
-    n_correct = sum(1 for a in attempts if a["is_correct"])
-    total_score = sum(a["score"] for a in attempts)
-    db.finalize_session(conn, session_id, n_questions, total_score)
+        db.insert_attempts(
+            conn, session_id, [a.model_dump() for a in body.attempts]
+        )
+        db.finalize_session(conn, session_id, n_questions, total_score)
 
-    accuracy = (n_correct / n_questions) if n_questions else 0.0
-    return SessionSummary(
-        session_id=session_id,
-        n_questions=n_questions,
-        n_correct=n_correct,
-        accuracy=accuracy,
-        total_score=total_score,
-    )
+        accuracy = (n_correct / n_questions) if n_questions else 0.0
+        return SessionSummary(
+            session_id=session_id,
+            n_questions=n_questions,
+            n_correct=n_correct,
+            accuracy=accuracy,
+            total_score=total_score,
+        )
+    finally:
+        conn.close()

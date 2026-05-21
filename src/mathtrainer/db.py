@@ -35,6 +35,13 @@ def create_session(conn: sqlite3.Connection, mode: str) -> int:
     return int(cur.lastrowid)
 
 
+def session_exists(conn: sqlite3.Connection, session_id: int) -> bool:
+    row = conn.execute(
+        "SELECT 1 FROM sessions WHERE id = ?", (session_id,)
+    ).fetchone()
+    return row is not None
+
+
 def finalize_session(
     conn: sqlite3.Connection,
     session_id: int,
