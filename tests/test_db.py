@@ -1,10 +1,37 @@
 import json
-from mathtrainer import db
+from mathtrainer import db, model
 
 
 def _conn(tmp_path):
     conn = db.get_connection(tmp_path / "test.db")
     db.init_db(conn)
+    return conn
+
+
+_LEGACY_SCHEMA = """
+CREATE TABLE sessions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, mode TEXT NOT NULL,
+    started_at TEXT NOT NULL, ended_at TEXT,
+    n_questions INTEGER NOT NULL DEFAULT 0, total_score REAL NOT NULL DEFAULT 0,
+    rating_before REAL, rating_after REAL);
+CREATE TABLE attempts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT, session_id INTEGER NOT NULL,
+    ts TEXT NOT NULL, operation TEXT NOT NULL, operands TEXT NOT NULL,
+    correct_answer INTEGER NOT NULL, given_answer INTEGER,
+    is_correct INTEGER NOT NULL, difficulty REAL NOT NULL, features TEXT NOT NULL,
+    ms_to_first_key INTEGER, ms_to_submit INTEGER NOT NULL, trick_slug TEXT,
+    score REAL NOT NULL DEFAULT 0);
+CREATE TABLE model_state (
+    id INTEGER PRIMARY KEY CHECK (id = 1), rating REAL NOT NULL,
+    bins TEXT NOT NULL, residuals TEXT NOT NULL, updated_at TEXT);
+"""
+
+
+def _legacy_conn(tmp_path):
+    """A connection to a database built with the pre-operations schema."""
+    conn = db.get_connection(tmp_path / "legacy.db")
+    conn.executescript(_LEGACY_SCHEMA)
+    conn.commit()
     return conn
 
 
@@ -65,10 +92,10 @@ def test_model_state_round_trip(tmp_path):
     conn = _conn(tmp_path)
     assert db.load_model_state(conn) is None
 
-    state = {"rating": 57.5, "bins": [{"mean": 1.0}], "residuals": {"add": 2.0}}
+    state = model.default_model_state()
+    state["rating"] = 57.5
     db.save_model_state(conn, state)
-    loaded = db.load_model_state(conn)
-    assert loaded == state
+    assert db.load_model_state(conn) == state
 
     state["rating"] = 60.0
     db.save_model_state(conn, state)
@@ -113,3 +140,18 @@ def test_trick_state_record_and_read(tmp_path):
     assert state["times-9"]["attempts"] == 1
     assert state["times-9"]["correct"] == 1
     assert state["times-11"]["last_practiced"] is not None
+
+
+def test_model_state_migration_renames_residuals_column(tmp_path):
+    conn = _legacy_conn(tmp_path)
+    conn.execute(
+        "INSERT INTO model_state (id, rating, bins, residuals) "
+        "VALUES (1, 50.0, '[]', '{}')"
+    )
+    conn.commit()
+    db._migrate(conn)
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(model_state)")}
+    assert "operations" in cols
+    assert "residuals" not in cols
+    state = db.load_model_state(conn)
+    assert state is not None and set(state["operations"]) == set(model.OPERATIONS)

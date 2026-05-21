@@ -7,7 +7,7 @@ def test_default_state_shape():
     s = model.default_model_state()
     assert s["rating"] == model.DEFAULT_RATING
     assert len(s["bins"]) == model.N_BINS
-    assert set(s["residuals"]) == set(model.OPERATIONS)
+    assert set(s["operations"]) == set(model.OPERATIONS)
 
 
 def test_bin_index_spans_difficulty_range():
@@ -68,17 +68,9 @@ def test_rating_stays_in_bounds():
     assert 1.0 <= s["rating"] <= 100.0
 
 
-def test_persistently_slow_operation_is_flagged_weak():
-    s = model.default_model_state()
-    for _ in range(6):
-        s, _ = model.process_attempt(s, "divide", 45, is_correct=True, solve_ms=30000)
-    assert "divide" in model.weak_operations(s)
-    assert "add" not in model.weak_operations(s)
-
-
 def test_target_band_tracks_rating():
-    low = model.target_band({"rating": 20.0, "bins": [], "residuals": {}})
-    high = model.target_band({"rating": 80.0, "bins": [], "residuals": {}})
+    low = model.target_band({"rating": 20.0, "bins": [], "operations": {}})
+    high = model.target_band({"rating": 80.0, "bins": [], "operations": {}})
     assert high["min"] > low["min"]
     assert 1.0 <= low["min"] <= low["max"] <= 100.0
     assert 1.0 <= high["min"] <= high["max"] <= 100.0
@@ -91,13 +83,6 @@ def test_state_is_json_round_trippable():
     assert json.loads(json.dumps(s)) == s
 
 
-def test_wrong_answer_does_not_update_residuals_or_bins():
-    s = model.default_model_state()
-    s2, _ = model.process_attempt(s, "add", 45, is_correct=False, solve_ms=500)
-    assert s2["bins"][4]["count"] == 0
-    assert s2["residuals"]["add"]["count"] == 0
-
-
 def test_score_at_spread_floor_is_well_behaved():
     s = model.default_model_state()
     for _ in range(100):
@@ -108,8 +93,64 @@ def test_score_at_spread_floor_is_well_behaved():
     assert not math.isnan(score)
 
 
-def test_weak_operations_respects_min_samples_threshold():
+def test_operations_seeded_at_default_rating():
+    s = model.default_model_state()
+    assert set(s["operations"]) == set(model.OPERATIONS)
+    for rec in s["operations"].values():
+        assert rec["rating"] == model.DEFAULT_RATING
+        assert rec["count"] == 0
+
+
+def test_fast_correct_answers_raise_operation_rating():
+    s = model.default_model_state()
+    for _ in range(20):
+        s, _ = model.process_attempt(s, "multiply", 45, is_correct=True, solve_ms=200)
+    assert s["operations"]["multiply"]["rating"] > model.DEFAULT_RATING
+
+
+def test_wrong_answer_updates_op_rating_but_not_bins():
+    s = model.default_model_state()
+    s2, _ = model.process_attempt(s, "add", 45, is_correct=False, solve_ms=500)
+    assert s2["bins"][4]["count"] == 0
+    assert s2["operations"]["add"]["count"] == 1
+    assert s2["operations"]["add"]["rating"] < model.DEFAULT_RATING
+
+
+def test_process_attempt_only_updates_the_target_operation():
+    s = model.default_model_state()
+    s2, _ = model.process_attempt(s, "add", 45, is_correct=True, solve_ms=200)
+    assert s2["operations"]["add"]["count"] == 1
+    assert s2["operations"]["subtract"] == {"rating": model.DEFAULT_RATING, "count": 0}
+
+
+def test_operation_rating_stays_in_bounds():
+    s = model.default_model_state()
+    for _ in range(500):
+        s, _ = model.process_attempt(s, "add", 90, is_correct=True, solve_ms=50)
+    for _ in range(500):
+        s, _ = model.process_attempt(s, "add", 10, is_correct=False, solve_ms=9000)
+    assert 1.0 <= s["operations"]["add"]["rating"] <= 100.0
+
+
+def test_operation_ratings_accessor_returns_all_operations():
+    s = model.default_model_state()
+    ratings = model.operation_ratings(s)
+    assert set(ratings) == set(model.OPERATIONS)
+    assert ratings["add"] == model.DEFAULT_RATING
+
+
+def test_low_rated_operation_is_flagged_weak():
+    s = model.default_model_state()
+    for _ in range(30):
+        s, _ = model.process_attempt(s, "add", 45, is_correct=True, solve_ms=200)
+        s, _ = model.process_attempt(s, "divide", 45, is_correct=False, solve_ms=9000)
+    weak = model.weak_operations(s)
+    assert "divide" in weak
+    assert "add" not in weak
+
+
+def test_weak_operations_ignores_operations_below_min_samples():
     s = model.default_model_state()
     for _ in range(model.WEAK_MIN_SAMPLES - 1):
-        s, _ = model.process_attempt(s, "divide", 45, is_correct=True, solve_ms=30000)
+        s, _ = model.process_attempt(s, "divide", 45, is_correct=False, solve_ms=9000)
     assert "divide" not in model.weak_operations(s)

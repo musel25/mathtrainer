@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS model_state (
     id          INTEGER PRIMARY KEY CHECK (id = 1),
     rating      REAL NOT NULL,
     bins        TEXT NOT NULL,
-    residuals   TEXT NOT NULL,
+    operations  TEXT NOT NULL,
     updated_at  TEXT
 );
 

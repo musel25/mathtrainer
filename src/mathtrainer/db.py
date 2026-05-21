@@ -6,6 +6,8 @@ import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
 
+from . import model
+
 _SCHEMA = Path(__file__).with_name("schema.sql")
 
 
@@ -34,6 +36,12 @@ def _migrate(conn: sqlite3.Connection) -> None:
         conn.execute("ALTER TABLE sessions ADD COLUMN rating_before REAL")
     if "rating_after" not in cols:
         conn.execute("ALTER TABLE sessions ADD COLUMN rating_after REAL")
+
+    ms_cols = {r["name"] for r in conn.execute("PRAGMA table_info(model_state)")}
+    if "residuals" in ms_cols and "operations" not in ms_cols:
+        conn.execute(
+            "ALTER TABLE model_state RENAME COLUMN residuals TO operations"
+        )
     conn.commit()
 
 
@@ -104,26 +112,34 @@ def insert_attempts(
 
 def load_model_state(conn: sqlite3.Connection) -> dict | None:
     row = conn.execute(
-        "SELECT rating, bins, residuals FROM model_state WHERE id = 1"
+        "SELECT rating, bins, operations FROM model_state WHERE id = 1"
     ).fetchone()
     if row is None:
         return None
+    raw_ops = json.loads(row["operations"])
+    operations = {
+        op: {
+            "rating": float(raw_ops.get(op, {}).get("rating", model.DEFAULT_RATING)),
+            "count": int(raw_ops.get(op, {}).get("count", 0)),
+        }
+        for op in model.OPERATIONS
+    }
     return {
         "rating": row["rating"],
         "bins": json.loads(row["bins"]),
-        "residuals": json.loads(row["residuals"]),
+        "operations": operations,
     }
 
 
 def save_model_state(conn: sqlite3.Connection, state: dict) -> None:
     conn.execute(
-        "INSERT INTO model_state (id, rating, bins, residuals, updated_at) "
+        "INSERT INTO model_state (id, rating, bins, operations, updated_at) "
         "VALUES (1, ?, ?, ?, ?) "
         "ON CONFLICT(id) DO UPDATE SET rating = excluded.rating, "
-        "bins = excluded.bins, residuals = excluded.residuals, "
+        "bins = excluded.bins, operations = excluded.operations, "
         "updated_at = excluded.updated_at",
         (state["rating"], json.dumps(state["bins"]),
-         json.dumps(state["residuals"]), _now()),
+         json.dumps(state["operations"]), _now()),
     )
     conn.commit()
 
