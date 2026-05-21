@@ -55,3 +55,23 @@ describe('generateQuestion', () => {
     }
   })
 })
+
+describe('generateQuestion weak-operation weighting', () => {
+  it('over-samples weak operations', () => {
+    const wideBand = { min: 1, max: 100 }
+    let weakCount = 0
+    let plainCount = 0
+    for (let i = 0; i < 1000; i++) {
+      if (generateQuestion(wideBand).operation === 'divide') plainCount++
+      if (generateQuestion(wideBand, Math.random, ['divide']).operation === 'divide') {
+        weakCount++
+      }
+    }
+    expect(weakCount).toBeGreaterThan(plainCount)
+  })
+
+  it('still works with an empty weak-operations list', () => {
+    const q = generateQuestion({ min: 1, max: 100 }, Math.random, [])
+    expect(q.answer).toBeGreaterThanOrEqual(0)
+  })
+})

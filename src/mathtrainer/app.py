@@ -7,11 +7,12 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 
-from . import db
+from . import db, model
 from .models import (
     SessionCreateIn,
     SessionCreateOut,
     SessionFinishIn,
+    SessionPlan,
     SessionSummary,
 )
 
@@ -32,6 +33,21 @@ def health() -> dict:
     return {"status": "ok"}
 
 
+@app.get("/api/session-plan", response_model=SessionPlan)
+def session_plan() -> SessionPlan:
+    conn = _get_conn()
+    try:
+        state = db.load_model_state(conn) or model.default_model_state()
+        band = model.target_band(state)
+        return SessionPlan(
+            rating=state["rating"],
+            target_band={"min": band["min"], "max": band["max"]},
+            weak_operations=model.weak_operations(state),
+        )
+    finally:
+        conn.close()
+
+
 @app.post("/api/sessions", response_model=SessionCreateOut)
 def create_session(body: SessionCreateIn) -> SessionCreateOut:
     conn = _get_conn()
@@ -49,14 +65,30 @@ def finish_session(session_id: int, body: SessionFinishIn) -> SessionSummary:
         if not db.session_exists(conn, session_id):
             raise HTTPException(status_code=404, detail="session not found")
 
-        n_questions = len(body.attempts)
-        n_correct = sum(1 for a in body.attempts if a.is_correct)
-        total_score = sum(a.score for a in body.attempts)
+        state = db.load_model_state(conn) or model.default_model_state()
+        rating_before = state["rating"]
 
-        db.insert_attempts(
-            conn, session_id, [a.model_dump() for a in body.attempts]
+        attempts: list[dict] = []
+        total_score = 0.0
+        for a in body.attempts:
+            state, score = model.process_attempt(
+                state, a.operation, a.difficulty, a.is_correct, a.ms_to_submit,
+            )
+            row = a.model_dump()
+            row["score"] = score
+            attempts.append(row)
+            total_score += score
+
+        rating_after = state["rating"]
+        n_questions = len(attempts)
+        n_correct = sum(1 for a in body.attempts if a.is_correct)
+
+        db.insert_attempts(conn, session_id, attempts)
+        db.save_model_state(conn, state)
+        db.finalize_session(
+            conn, session_id, n_questions, total_score,
+            rating_before, rating_after,
         )
-        db.finalize_session(conn, session_id, n_questions, total_score)
 
         accuracy = (n_correct / n_questions) if n_questions else 0.0
         return SessionSummary(
@@ -65,6 +97,9 @@ def finish_session(session_id: int, body: SessionFinishIn) -> SessionSummary:
             n_correct=n_correct,
             accuracy=accuracy,
             total_score=total_score,
+            rating_before=rating_before,
+            rating_after=rating_after,
+            weak_operations=model.weak_operations(state),
         )
     finally:
         conn.close()

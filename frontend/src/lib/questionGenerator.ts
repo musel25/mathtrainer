@@ -107,18 +107,22 @@ function buildRaw(rng: Rng, op: Operation): Omit<Question, 'difficulty'> {
 /**
  * Generates a question whose difficulty falls inside `band`. Uses bounded
  * rejection sampling; if no candidate lands in the band within the retry
- * budget, returns the closest one found. `rng` is injectable for testing.
+ * budget, returns the closest one found. Operations listed in `weakOps` are
+ * over-sampled (entered twice into the operation pool). `rng` is injectable
+ * for testing.
  */
 export function generateQuestion(
   band: DifficultyBand,
   rng: Rng = Math.random,
+  weakOps: Operation[] = [],
 ): Question {
   const MAX_TRIES = 40
+  const pool: Operation[] = [...OPERATIONS, ...weakOps]
   let best: Question | null = null
   let bestDist = Infinity
 
   for (let i = 0; i < MAX_TRIES; i++) {
-    const raw = buildRaw(rng, pick(rng, OPERATIONS))
+    const raw = buildRaw(rng, pick(rng, pool))
     const difficulty = computeDifficulty(raw.features)
     const candidate: Question = { ...raw, difficulty }
 

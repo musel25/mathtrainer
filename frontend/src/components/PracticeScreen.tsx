@@ -1,20 +1,22 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
-import type { DifficultyBand, Question, QuestionResult } from '../lib/types'
+import type { Question, QuestionResult, SessionPlan } from '../lib/types'
 import { generateQuestion } from '../lib/questionGenerator'
 import {
   createSession, recordResult, isComplete, type SessionState,
 } from '../lib/session'
 
-const BAND: DifficultyBand = { min: 15, max: 55 } // fixed in Phase 1
 const TOTAL = 10
 
 interface Props {
+  plan: SessionPlan
   onComplete: (results: QuestionResult[]) => void
 }
 
-export function PracticeScreen({ onComplete }: Props) {
+export function PracticeScreen({ plan, onComplete }: Props) {
   const [session, setSession] = useState<SessionState>(() => createSession(TOTAL))
-  const [question, setQuestion] = useState<Question>(() => generateQuestion(BAND))
+  const [question, setQuestion] = useState<Question>(
+    () => generateQuestion(plan.targetBand, Math.random, plan.weakOperations),
+  )
   const [input, setInput] = useState('')
   const [feedback, setFeedback] = useState<null | 'correct' | string>(null)
   const [elapsed, setElapsed] = useState(0)
@@ -54,7 +56,7 @@ export function PracticeScreen({ onComplete }: Props) {
       onComplete(updated.results)
       return
     }
-    setQuestion(generateQuestion(BAND))
+    setQuestion(generateQuestion(plan.targetBand, Math.random, plan.weakOperations))
     setInput('')
     setFeedback(null)
     firstKeyAt.current = null

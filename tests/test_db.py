@@ -52,3 +52,39 @@ def test_insert_attempts_batch(tmp_path):
     assert json.loads(row["operands"]) == [12, 34]
     assert row["is_correct"] == 1
     assert json.loads(row["features"]) == {"carries": 0, "maxOperand": 34}
+
+
+def test_sessions_migration_adds_rating_columns(tmp_path):
+    conn = _conn(tmp_path)
+    cols = {r["name"] for r in conn.execute("PRAGMA table_info(sessions)")}
+    assert "rating_before" in cols
+    assert "rating_after" in cols
+
+
+def test_model_state_round_trip(tmp_path):
+    conn = _conn(tmp_path)
+    assert db.load_model_state(conn) is None
+
+    state = {"rating": 57.5, "bins": [{"mean": 1.0}], "residuals": {"add": 2.0}}
+    db.save_model_state(conn, state)
+    loaded = db.load_model_state(conn)
+    assert loaded == state
+
+    state["rating"] = 60.0
+    db.save_model_state(conn, state)
+    assert db.load_model_state(conn)["rating"] == 60.0
+
+
+def test_finalize_session_records_ratings(tmp_path):
+    conn = _conn(tmp_path)
+    session_id = db.create_session(conn, mode="daily")
+    db.finalize_session(
+        conn, session_id, n_questions=2, total_score=10.0,
+        rating_before=50.0, rating_after=53.0,
+    )
+    row = conn.execute(
+        "SELECT rating_before, rating_after FROM sessions WHERE id = ?",
+        (session_id,),
+    ).fetchone()
+    assert row["rating_before"] == 50.0
+    assert row["rating_after"] == 53.0

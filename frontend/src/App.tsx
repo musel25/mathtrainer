@@ -1,43 +1,62 @@
 import { useState } from 'react'
-import type { QuestionResult } from './lib/types'
-import { startSession, finishSession, type SessionSummary } from './lib/api'
+import type { QuestionResult, SessionPlan } from './lib/types'
+import {
+  startSession, finishSession, getSessionPlan, type SessionSummary,
+} from './lib/api'
 import { StartScreen } from './components/StartScreen'
 import { PracticeScreen } from './components/PracticeScreen'
 import { SummaryScreen } from './components/SummaryScreen'
 
-type Screen = 'start' | 'practice' | 'summary'
+type Screen = 'start' | 'loading' | 'practice' | 'summary'
 
 export default function App() {
   const [screen, setScreen] = useState<Screen>('start')
+  const [plan, setPlan] = useState<SessionPlan | null>(null)
   const [results, setResults] = useState<QuestionResult[]>([])
   const [summary, setSummary] = useState<SessionSummary | null>(null)
-  const [saveError, setSaveError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleStart() {
+    setScreen('loading')
+    setError(null)
+    try {
+      setPlan(await getSessionPlan())
+      setScreen('practice')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+      setScreen('start')
+    }
+  }
 
   async function handleComplete(finished: QuestionResult[]) {
     setResults(finished)
     setSummary(null)
-    setSaveError(null)
+    setError(null)
     setScreen('summary')
     try {
       const sessionId = await startSession('daily')
-      const result = await finishSession(sessionId, finished)
-      setSummary(result)
+      setSummary(await finishSession(sessionId, finished))
     } catch (err) {
-      setSaveError(err instanceof Error ? err.message : String(err))
+      setError(err instanceof Error ? err.message : String(err))
     }
   }
 
   if (screen === 'start') {
-    return <StartScreen onStart={() => setScreen('practice')} />
+    return <StartScreen onStart={handleStart} error={error} />
   }
-  if (screen === 'practice') {
-    return <PracticeScreen onComplete={handleComplete} />
+  if (screen === 'loading') {
+    return (
+      <div style={{ textAlign: 'center', marginTop: '20vh' }}>Loading…</div>
+    )
+  }
+  if (screen === 'practice' && plan) {
+    return <PracticeScreen plan={plan} onComplete={handleComplete} />
   }
   return (
     <SummaryScreen
       results={results}
       summary={summary}
-      saveError={saveError}
+      saveError={error}
       onRestart={() => setScreen('start')}
     />
   )
