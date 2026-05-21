@@ -83,3 +83,15 @@ def test_session_plan_default_for_fresh_db(client):
     assert body["rating"] == 50.0
     assert body["target_band"]["min"] < body["target_band"]["max"]
     assert body["weak_operations"] == []
+
+
+def test_settings_get_and_put(client):
+    resp = client.get("/api/settings")
+    assert resp.status_code == 200
+    assert resp.json() == {"daily_goal": 20, "session_length": 10}
+
+    resp = client.put("/api/settings", json={"daily_goal": 25, "session_length": 12})
+    assert resp.status_code == 200
+    assert client.get("/api/settings").json() == {
+        "daily_goal": 25, "session_length": 12,
+    }

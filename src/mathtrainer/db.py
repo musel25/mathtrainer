@@ -126,3 +126,40 @@ def save_model_state(conn: sqlite3.Connection, state: dict) -> None:
          json.dumps(state["residuals"]), _now()),
     )
     conn.commit()
+
+
+_DEFAULT_SETTINGS = {"daily_goal": 20, "session_length": 10}
+
+
+def load_settings(conn: sqlite3.Connection) -> dict:
+    row = conn.execute(
+        "SELECT daily_goal, session_length FROM settings WHERE id = 1"
+    ).fetchone()
+    if row is None:
+        return dict(_DEFAULT_SETTINGS)
+    return {"daily_goal": row["daily_goal"], "session_length": row["session_length"]}
+
+
+def save_settings(conn: sqlite3.Connection, settings: dict) -> None:
+    conn.execute(
+        "INSERT INTO settings (id, daily_goal, session_length) VALUES (1, ?, ?) "
+        "ON CONFLICT(id) DO UPDATE SET daily_goal = excluded.daily_goal, "
+        "session_length = excluded.session_length",
+        (settings["daily_goal"], settings["session_length"]),
+    )
+    conn.commit()
+
+
+def all_sessions(conn: sqlite3.Connection) -> list[dict]:
+    rows = conn.execute(
+        "SELECT id, mode, started_at, ended_at, n_questions, total_score, "
+        "rating_before, rating_after FROM sessions"
+    ).fetchall()
+    return [dict(r) for r in rows]
+
+
+def all_attempts(conn: sqlite3.Connection) -> list[dict]:
+    rows = conn.execute(
+        "SELECT session_id, operation, is_correct, ms_to_submit FROM attempts"
+    ).fetchall()
+    return [dict(r) for r in rows]

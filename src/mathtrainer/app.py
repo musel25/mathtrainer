@@ -14,6 +14,7 @@ from .models import (
     SessionFinishIn,
     SessionPlan,
     SessionSummary,
+    SettingsModel,
 )
 
 DB_PATH = os.environ.get("MATHTRAINER_DB", str(Path.cwd() / "mathtrainer.db"))
@@ -44,6 +45,25 @@ def session_plan() -> SessionPlan:
             target_band={"min": band["min"], "max": band["max"]},
             weak_operations=model.weak_operations(state),
         )
+    finally:
+        conn.close()
+
+
+@app.get("/api/settings", response_model=SettingsModel)
+def get_settings() -> SettingsModel:
+    conn = _get_conn()
+    try:
+        return SettingsModel(**db.load_settings(conn))
+    finally:
+        conn.close()
+
+
+@app.put("/api/settings", response_model=SettingsModel)
+def put_settings(body: SettingsModel) -> SettingsModel:
+    conn = _get_conn()
+    try:
+        db.save_settings(conn, body.model_dump())
+        return body
     finally:
         conn.close()
 

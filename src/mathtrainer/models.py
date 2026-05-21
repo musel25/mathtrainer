@@ -50,3 +50,8 @@ class SessionPlan(BaseModel):
     rating: float
     target_band: DifficultyBandModel
     weak_operations: list[str]
+
+
+class SettingsModel(BaseModel):
+    daily_goal: int
+    session_length: int
