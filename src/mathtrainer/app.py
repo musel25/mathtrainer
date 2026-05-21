@@ -1,0 +1,66 @@
+"""FastAPI application: API routes and (in Task 4) the SPA mount."""
+from __future__ import annotations
+
+import os
+import sqlite3
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
+
+from . import db
+from .models import (
+    SessionCreateIn,
+    SessionCreateOut,
+    SessionFinishIn,
+    SessionSummary,
+)
+
+DB_PATH = os.environ.get("MATHTRAINER_DB", str(Path.cwd() / "mathtrainer.db"))
+
+app = FastAPI(title="mathtrainer")
+
+
+def _get_conn() -> sqlite3.Connection:
+    """Overridden in tests. In production, opens the configured DB file."""
+    conn = db.get_connection(DB_PATH)
+    db.init_db(conn)
+    return conn
+
+
+@app.get("/api/health")
+def health() -> dict:
+    return {"status": "ok"}
+
+
+@app.post("/api/sessions", response_model=SessionCreateOut)
+def create_session(body: SessionCreateIn) -> SessionCreateOut:
+    conn = _get_conn()
+    session_id = db.create_session(conn, mode=body.mode)
+    return SessionCreateOut(id=session_id)
+
+
+@app.post("/api/sessions/{session_id}/finish", response_model=SessionSummary)
+def finish_session(session_id: int, body: SessionFinishIn) -> SessionSummary:
+    conn = _get_conn()
+    exists = conn.execute(
+        "SELECT 1 FROM sessions WHERE id = ?", (session_id,)
+    ).fetchone()
+    if exists is None:
+        raise HTTPException(status_code=404, detail="session not found")
+
+    attempts = [a.model_dump() for a in body.attempts]
+    db.insert_attempts(conn, session_id, attempts)
+
+    n_questions = len(attempts)
+    n_correct = sum(1 for a in attempts if a["is_correct"])
+    total_score = sum(a["score"] for a in attempts)
+    db.finalize_session(conn, session_id, n_questions, total_score)
+
+    accuracy = (n_correct / n_questions) if n_questions else 0.0
+    return SessionSummary(
+        session_id=session_id,
+        n_questions=n_questions,
+        n_correct=n_correct,
+        accuracy=accuracy,
+        total_score=total_score,
+    )
