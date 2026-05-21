@@ -7,11 +7,6 @@ const OPERATIONS: Operation[] = [
   'add', 'subtract', 'multiply', 'divide', 'square', 'percent',
 ]
 
-const SYMBOL: Record<Operation, string> = {
-  add: '+', subtract: '−', multiply: '×', divide: '÷',
-  square: '²', percent: '% of',
-}
-
 function randInt(rng: Rng, min: number, max: number): number {
   return min + Math.floor(rng() * (max - min + 1))
 }
