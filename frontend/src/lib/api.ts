@@ -1,4 +1,4 @@
-import type { QuestionResult } from './types'
+import type { Operation, QuestionResult, SessionPlan } from './types'
 
 export interface SessionSummary {
   session_id: number
@@ -6,6 +6,9 @@ export interface SessionSummary {
   n_correct: number
   accuracy: number
   total_score: number
+  rating_before: number
+  rating_after: number
+  weak_operations: string[]
 }
 
 interface AttemptPayload {
@@ -59,4 +62,15 @@ export async function finishSession(
   })
   if (!resp.ok) throw new Error(`finishSession failed: ${resp.status}`)
   return (await resp.json()) as SessionSummary
+}
+
+export async function getSessionPlan(): Promise<SessionPlan> {
+  const resp = await fetch('/api/session-plan')
+  if (!resp.ok) throw new Error(`getSessionPlan failed: ${resp.status}`)
+  const raw = await resp.json()
+  return {
+    rating: raw.rating as number,
+    targetBand: { min: raw.target_band.min, max: raw.target_band.max },
+    weakOperations: raw.weak_operations as Operation[],
+  }
 }

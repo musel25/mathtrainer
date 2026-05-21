@@ -29,3 +29,9 @@ export interface QuestionResult {
   msToFirstKey: number | null
   msToSubmit: number
 }
+
+export interface SessionPlan {
+  rating: number
+  targetBand: DifficultyBand
+  weakOperations: Operation[]
+}
