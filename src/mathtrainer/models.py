@@ -36,3 +36,6 @@ class SessionSummary(BaseModel):
     n_correct: int
     accuracy: float
     total_score: float
+    rating_before: float
+    rating_after: float
+    weak_operations: list[str]

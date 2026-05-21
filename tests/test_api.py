@@ -29,9 +29,9 @@ def test_finish_session_persists_and_summarizes(client):
         "attempts": [
             {
                 "operation": "add", "operands": [12, 34], "correct_answer": 46,
-                "given_answer": 46, "is_correct": True, "difficulty": 21.0,
+                "given_answer": 46, "is_correct": True, "difficulty": 45.0,
                 "features": {"carries": 0}, "ms_to_first_key": 700,
-                "ms_to_submit": 1800, "trick_slug": None, "score": 21.0,
+                "ms_to_submit": 1800, "trick_slug": None, "score": 0.0,
             },
             {
                 "operation": "add", "operands": [9, 9], "correct_answer": 18,
@@ -47,7 +47,28 @@ def test_finish_session_persists_and_summarizes(client):
     assert body["n_questions"] == 2
     assert body["n_correct"] == 1
     assert body["accuracy"] == 0.5
-    assert body["total_score"] == 21.0
+    assert body["total_score"] > 0
+    assert "rating_before" in body
+    assert "rating_after" in body
+    assert isinstance(body["weak_operations"], list)
+
+
+def test_finish_session_persists_model_state(client):
+    session_id = client.post("/api/sessions", json={"mode": "daily"}).json()["id"]
+    payload = {
+        "attempts": [
+            {
+                "operation": "multiply", "operands": [6, 7], "correct_answer": 42,
+                "given_answer": 42, "is_correct": True, "difficulty": 50.0,
+                "features": {}, "ms_to_first_key": 400, "ms_to_submit": 1500,
+                "trick_slug": None, "score": 0.0,
+            }
+        ]
+    }
+    resp = client.post(f"/api/sessions/{session_id}/finish", json=payload)
+    assert resp.status_code == 200
+    # the attempt's stored score must be the model-computed score, not 0
+    assert resp.json()["total_score"] > 0
 
 
 def test_finish_session_404_on_unknown_session(client):
