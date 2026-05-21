@@ -21,6 +21,8 @@ export function PracticeScreen({ onComplete }: Props) {
   const renderedAt = useRef(performance.now())
   const firstKeyAt = useRef<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const submittedRef = useRef(false)
 
   const expectedLen = useMemo(() => String(question.answer).length, [question])
 
@@ -32,6 +34,15 @@ export function PracticeScreen({ onComplete }: Props) {
     )
     return () => clearInterval(id)
   }, [question])
+
+  // clear a pending feedback->advance timer if we unmount before it fires
+  useEffect(() => {
+    return () => {
+      if (feedbackTimerRef.current !== null) {
+        clearTimeout(feedbackTimerRef.current)
+      }
+    }
+  }, [])
 
   // focus the input on every new question
   useEffect(() => {
@@ -47,6 +58,7 @@ export function PracticeScreen({ onComplete }: Props) {
     setInput('')
     setFeedback(null)
     firstKeyAt.current = null
+    submittedRef.current = false
     renderedAt.current = performance.now()
   }
 
@@ -66,7 +78,10 @@ export function PracticeScreen({ onComplete }: Props) {
     setSession(updated)
     setFeedback(isCorrect ? 'correct' : `Answer: ${question.answer}`)
     // brief feedback pause, then advance
-    setTimeout(() => nextQuestion(updated), isCorrect ? 350 : 1100)
+    feedbackTimerRef.current = setTimeout(
+      () => nextQuestion(updated),
+      isCorrect ? 350 : 1100,
+    )
   }
 
   function onChange(raw: string) {
@@ -75,13 +90,15 @@ export function PracticeScreen({ onComplete }: Props) {
       firstKeyAt.current = performance.now()
     }
     setInput(digits)
-    if (feedback === null && digits.length >= expectedLen) {
+    if (!submittedRef.current && digits.length >= expectedLen) {
+      submittedRef.current = true
       submit(Number(digits))
     }
   }
 
   function onKeyDown(e: KeyboardEvent) {
-    if (e.key === 'Enter' && feedback === null && input.length > 0) {
+    if (e.key === 'Enter' && !submittedRef.current && input.length > 0) {
+      submittedRef.current = true
       submit(Number(input))
     }
   }
