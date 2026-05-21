@@ -46,6 +46,7 @@ def session_plan() -> SessionPlan:
             rating=state["rating"],
             target_band={"min": band["min"], "max": band["max"]},
             weak_operations=model.weak_operations(state),
+            session_length=db.load_settings(conn)["session_length"],
         )
     finally:
         conn.close()

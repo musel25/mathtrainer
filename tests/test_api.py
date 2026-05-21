@@ -83,6 +83,7 @@ def test_session_plan_default_for_fresh_db(client):
     assert body["rating"] == 50.0
     assert body["target_band"]["min"] < body["target_band"]["max"]
     assert body["weak_operations"] == []
+    assert body["session_length"] == 10
 
 
 def test_settings_get_and_put(client):
