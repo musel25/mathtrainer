@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { generateQuestion, countCarries } from './questionGenerator'
 import { TRICK_BY_SLUG } from './tricks'
-import type { DifficultyBand } from './types'
+import type { DifficultyBand, Operation } from './types'
 
 const BAND: DifficultyBand = { min: 15, max: 55 }
 
@@ -57,31 +57,11 @@ describe('generateQuestion', () => {
   })
 })
 
-describe('generateQuestion weak-operation weighting', () => {
-  it('over-samples weak operations', () => {
-    const wideBand = { min: 1, max: 100 }
-    let weakCount = 0
-    let plainCount = 0
-    for (let i = 0; i < 1000; i++) {
-      if (generateQuestion(wideBand).operation === 'divide') plainCount++
-      if (generateQuestion(wideBand, Math.random, ['divide']).operation === 'divide') {
-        weakCount++
-      }
-    }
-    expect(weakCount).toBeGreaterThan(plainCount)
-  })
-
-  it('still works with an empty weak-operations list', () => {
-    const q = generateQuestion({ min: 1, max: 100 }, Math.random, [])
-    expect(q.answer).toBeGreaterThanOrEqual(0)
-  })
-})
-
 describe('generateQuestion trick tagging', () => {
   it('tags a question when a trick applies', () => {
     let tagged = 0
     for (let i = 0; i < 600; i++) {
-      const q = generateQuestion({ min: 1, max: 100 }, Math.random, ['multiply'])
+      const q = generateQuestion({ min: 1, max: 100 }, Math.random, { multiply: 5 })
       if (q.features.trickSlug !== null) {
         tagged++
       }
@@ -98,5 +78,32 @@ describe('generateQuestion trick tagging', () => {
         expect(trick.applies(q)).toBe(true)
       }
     }
+  })
+})
+
+describe('generateQuestion operation weighting', () => {
+  it('over-samples operations with a low rating', () => {
+    const ratings: Record<Operation, number> = {
+      add: 5, subtract: 100, multiply: 100,
+      divide: 100, square: 100, percent: 100,
+    }
+    const counts: Record<string, number> = {}
+    for (let i = 0; i < 3000; i++) {
+      const q = generateQuestion(BAND, Math.random, ratings)
+      counts[q.operation] = (counts[q.operation] ?? 0) + 1
+    }
+    expect(counts.add).toBeGreaterThan((counts.subtract ?? 0) * 3)
+  })
+
+  it('still reaches every operation when ratings are equal', () => {
+    const ratings: Record<Operation, number> = {
+      add: 50, subtract: 50, multiply: 50,
+      divide: 50, square: 50, percent: 50,
+    }
+    const seen = new Set<string>()
+    for (let i = 0; i < 2000; i++) {
+      seen.add(generateQuestion(BAND, Math.random, ratings).operation)
+    }
+    expect(seen.size).toBe(6)
   })
 })

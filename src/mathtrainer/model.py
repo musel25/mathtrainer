@@ -5,10 +5,11 @@ JSON in the `model_state` table. See the design spec, section 5.
 
 State shape:
     {
-      "rating": float,                       # 1..100, Elo-style
+      "rating": float,                       # 1..100, Elo-style (overall)
       "bins": [{"mean", "var", "count"}] * N_BINS,   # solve-time EWMA per
                                              # difficulty bin (correct answers)
-      "residuals": {operation: {"mean", "count"}},   # EWMA of (solve - expected)
+      "operations": {operation: {"rating", "count"}},  # per-operation
+                                             # Elo-style rating, 1..100
     }
 """
 from __future__ import annotations
@@ -25,8 +26,8 @@ MIN_SPREAD_MS = 400.0
 DEFAULT_SPREAD_MS = 2000.0
 DEFAULT_BASELINE_MS = [1500, 2200, 3000, 4000, 5200,
                        6600, 8200, 10000, 12200, 14500]
-WEAK_RESIDUAL_MS = 1200.0      # operation is "weak" when its EWMA residual exceeds this
 WEAK_MIN_SAMPLES = 3
+WEAK_RATING_MARGIN = 8.0       # operation is "weak" when its rating is this far below overall
 OPERATIONS = ["add", "subtract", "multiply", "divide", "square", "percent"]
 
 
@@ -40,7 +41,9 @@ def default_model_state() -> dict:
     return {
         "rating": DEFAULT_RATING,
         "bins": [{"mean": 0.0, "var": 0.0, "count": 0} for _ in range(N_BINS)],
-        "residuals": {op: {"mean": 0.0, "count": 0} for op in OPERATIONS},
+        "operations": {
+            op: {"rating": DEFAULT_RATING, "count": 0} for op in OPERATIONS
+        },
     }
 
 
@@ -103,18 +106,20 @@ def _update_rating(
     return {**state, "rating": max(1.0, min(100.0, new_r))}
 
 
-def _update_residual(
-    state: dict, operation: str, expected_ms: float, solve_ms: float
+def _update_op_rating(
+    state: dict, operation: str, difficulty: float,
+    is_correct: bool, solve_ms: float,
 ) -> dict:
-    residuals = {op: dict(v) for op, v in state["residuals"].items()}
-    res = residuals.setdefault(operation, {"mean": 0.0, "count": 0})
-    residual = solve_ms - expected_ms
-    if res["count"] == 0:
-        res["mean"] = residual
-    else:
-        res["mean"] = res["mean"] + EWMA_ALPHA * (residual - res["mean"])
-    res["count"] = res["count"] + 1
-    return {**state, "residuals": residuals}
+    """Elo-style update of one operation's own rating, scored against that
+    operation's current rating. Mirrors `_update_rating` but per-operation."""
+    operations = {op: dict(v) for op, v in state["operations"].items()}
+    rec = operations.setdefault(operation, {"rating": DEFAULT_RATING, "count": 0})
+    r = rec["rating"]
+    p = 1.0 / (1.0 + math.exp(-(r - difficulty) / RATING_SCALE))
+    success = 1.0 if (is_correct and solve_ms <= expected_time(state, difficulty)) else 0.0
+    rec["rating"] = max(1.0, min(100.0, r + RATING_K * (success - p)))
+    rec["count"] = rec["count"] + 1
+    return {**state, "operations": operations}
 
 
 def process_attempt(
@@ -122,22 +127,34 @@ def process_attempt(
     is_correct: bool, solve_ms: float,
 ) -> tuple[dict, float]:
     """Scores one attempt against the CURRENT state, then returns the updated
-    state and the score. Score and rating are measured against the pre-update
-    baseline. Pure: `state` is not mutated."""
+    state and the score. The score and both rating updates (global and
+    per-operation) are computed from pre-attempt values — each rating's logistic
+    expectation reads its own pre-update rating, and `expected_time` reads the
+    pre-update solve-time bins. Pure: `state` is not mutated."""
     score = score_attempt(state, difficulty, is_correct, solve_ms)
     new_state = _update_rating(state, difficulty, is_correct, solve_ms)
+    new_state = _update_op_rating(
+        new_state, operation, difficulty, is_correct, solve_ms,
+    )
     if is_correct:
-        expected_ms = expected_time(state, difficulty)
-        new_state = _update_residual(new_state, operation, expected_ms, solve_ms)
         new_state = _update_bin(new_state, difficulty, solve_ms)
     return new_state, score
 
 
+def operation_ratings(state: dict) -> dict:
+    """Each operation's current rating (1..100)."""
+    return {op: rec["rating"] for op, rec in state["operations"].items()}
+
+
 def weak_operations(state: dict) -> list[str]:
-    """Operations the user is reliably slower at than their own baseline."""
+    """Operations whose own rating sits well below the overall rating —
+    candidates for extra practice. Operations with too few attempts to be
+    reliable are excluded."""
+    overall = state["rating"]
     return [
-        op for op, res in state["residuals"].items()
-        if res["count"] >= WEAK_MIN_SAMPLES and res["mean"] > WEAK_RESIDUAL_MS
+        op for op, rec in state["operations"].items()
+        if rec["count"] >= WEAK_MIN_SAMPLES
+        and overall - rec["rating"] > WEAK_RATING_MARGIN
     ]
 
 
@@ -149,3 +166,21 @@ def target_band(state: dict) -> dict:
         "min": max(1.0, r - 10.0),
         "max": min(100.0, r + 20.0),
     }
+
+
+def backfill_operation_ratings(attempts: list[dict]) -> dict:
+    """Replays a chronological list of attempt rows through the model to
+    reconstruct per-operation ratings for a database that predates them.
+    Each row needs: operation, difficulty, is_correct, ms_to_submit.
+    Returns the `operations` map ({operation: {"rating", "count"}}).
+
+    Note: the solve-time bins are rebuilt from scratch during replay, so the
+    expected-time thresholds for the earliest attempts use the default baseline
+    curve rather than the user's live values; ratings converge quickly."""
+    state = default_model_state()
+    for a in attempts:
+        state, _ = process_attempt(
+            state, a["operation"], float(a["difficulty"]),
+            bool(a["is_correct"]), float(a["ms_to_submit"]),
+        )
+    return state["operations"]

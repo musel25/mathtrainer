@@ -33,7 +33,7 @@ export interface QuestionResult {
 export interface SessionPlan {
   rating: number
   targetBand: DifficultyBand
-  weakOperations: Operation[]
+  operationRatings: Record<Operation, number>
   sessionLength: number
 }
 
@@ -67,6 +67,7 @@ export interface OperationTime {
 export interface Progress {
   history: ProgressPoint[]
   operationTimes: OperationTime[]
+  operationRatings: Record<Operation, number>
 }
 
 export interface Settings {

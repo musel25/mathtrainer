@@ -49,7 +49,7 @@ class DifficultyBandModel(BaseModel):
 class SessionPlan(BaseModel):
     rating: float
     target_band: DifficultyBandModel
-    weak_operations: list[str]
+    operation_ratings: dict[str, float]
     session_length: int
 
 

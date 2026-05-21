@@ -3,8 +3,13 @@ import {
   Bar, BarChart, CartesianGrid, Line, LineChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
-import type { Progress } from '../lib/types'
+import type { Operation, Progress } from '../lib/types'
 import { getProgress } from '../lib/api'
+
+// keep in sync with OPERATIONS in questionGenerator.ts and model.py
+const OP_ORDER: Operation[] = [
+  'add', 'subtract', 'multiply', 'divide', 'square', 'percent',
+]
 
 interface Props {
   onBack: () => void
@@ -71,6 +76,24 @@ export function ProgressPage({ onBack }: Props) {
               <YAxis />
               <Tooltip />
               <Bar dataKey="seconds" fill="#a6611a" />
+            </BarChart>
+          </ResponsiveContainer>
+
+          <h3>Ability by operation</h3>
+          <ResponsiveContainer width="100%" height={240}>
+            <BarChart
+              data={OP_ORDER.map((op) => ({
+                operation: op,
+                // the API always returns all six operations; ?? 50 is a
+                // defensive default (the cold-start rating) just in case
+                rating: Math.round(data.operationRatings[op] ?? 50),
+              }))}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="operation" />
+              <YAxis domain={[0, 100]} />
+              <Tooltip />
+              <Bar dataKey="rating" fill="#239a3b" />
             </BarChart>
           </ResponsiveContainer>
         </>
