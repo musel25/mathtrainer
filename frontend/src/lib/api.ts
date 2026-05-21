@@ -38,7 +38,7 @@ function toPayload(r: QuestionResult): AttemptPayload {
     features: r.question.features as unknown as Record<string, unknown>,
     ms_to_first_key: r.msToFirstKey,
     ms_to_submit: r.msToSubmit,
-    trick_slug: null,
+    trick_slug: r.question.features.trickSlug,
     // placeholder — the backend computes the authoritative score via the model
     score: 0,
   }

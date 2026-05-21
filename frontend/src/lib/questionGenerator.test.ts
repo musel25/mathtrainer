@@ -75,3 +75,25 @@ describe('generateQuestion weak-operation weighting', () => {
     expect(q.answer).toBeGreaterThanOrEqual(0)
   })
 })
+
+describe('generateQuestion trick tagging', () => {
+  it('tags a question when a trick applies', () => {
+    let tagged = 0
+    for (let i = 0; i < 600; i++) {
+      const q = generateQuestion({ min: 1, max: 100 }, Math.random, ['multiply'])
+      if (q.features.trickSlug !== null) {
+        tagged++
+      }
+    }
+    expect(tagged).toBeGreaterThan(0)
+  })
+
+  it('leaves trickSlug null when no trick applies', () => {
+    for (let i = 0; i < 300; i++) {
+      const q = generateQuestion({ min: 1, max: 100 })
+      if (q.operation === 'subtract') {
+        expect(q.features.trickSlug).toBeNull()
+      }
+    }
+  })
+})
