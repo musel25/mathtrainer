@@ -19,6 +19,7 @@ type Screen =
 interface Practice {
   source: () => Question
   total: number
+  mode: 'daily' | 'learn'
 }
 
 export default function App() {
@@ -37,6 +38,7 @@ export default function App() {
         source: () =>
           generateQuestion(plan.targetBand, Math.random, plan.weakOperations),
         total: plan.sessionLength,
+        mode: 'daily',
       })
       setScreen('practice')
     } catch (err) {
@@ -46,7 +48,9 @@ export default function App() {
   }
 
   function handleLearn(trick: Trick) {
-    setPractice({ source: () => trick.generate(Math.random), total: 8 })
+    setPractice({
+      source: () => trick.generate(Math.random), total: 8, mode: 'learn',
+    })
     setScreen('practice')
   }
 
@@ -56,7 +60,7 @@ export default function App() {
     setError(null)
     setScreen('summary')
     try {
-      const sessionId = await startSession('daily')
+      const sessionId = await startSession(practice?.mode ?? 'daily')
       setSummary(await finishSession(sessionId, finished))
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
