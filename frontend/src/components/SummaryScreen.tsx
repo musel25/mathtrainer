@@ -6,10 +6,13 @@ interface Props {
   results: QuestionResult[]
   summary: SessionSummary | null
   saveError: string | null
-  onRestart: () => void
+  onHome: () => void
+  onDrillAgain: () => void
 }
 
-export function SummaryScreen({ results, summary, saveError, onRestart }: Props) {
+export function SummaryScreen({
+  results, summary, saveError, onHome, onDrillAgain,
+}: Props) {
   const stats = sessionStats(
     results.reduce((s, r) => recordResult(s, r), createSession(results.length)),
   )
@@ -43,9 +46,22 @@ export function SummaryScreen({ results, summary, saveError, onRestart }: Props)
         </>
       )}
       {saveError && <p style={{ color: 'crimson' }}>Save failed: {saveError}</p>}
-      <button onClick={onRestart} style={{ fontSize: 18, padding: '10px 24px' }}>
-        Drill again
-      </button>
+      <div style={{
+        display: 'flex', justifyContent: 'center', gap: 12, marginTop: 8,
+      }}>
+        <button
+          onClick={onHome}
+          style={{ fontSize: 18, padding: '10px 24px' }}
+        >
+          🏠 Back to home
+        </button>
+        <button
+          onClick={onDrillAgain}
+          style={{ fontSize: 18, padding: '10px 24px' }}
+        >
+          Drill again
+        </button>
+      </div>
     </div>
   )
 }

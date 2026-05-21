@@ -85,7 +85,13 @@ export default function App() {
         results={results}
         summary={summary}
         saveError={error}
-        onRestart={() => setScreen('dashboard')}
+        onHome={() => setScreen('dashboard')}
+        onDrillAgain={() => {
+          setResults([])
+          setSummary(null)
+          setError(null)
+          setScreen(practice ? 'practice' : 'dashboard')
+        }}
       />
     )
   }
