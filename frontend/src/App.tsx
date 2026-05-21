@@ -3,14 +3,17 @@ import type { QuestionResult, SessionPlan } from './lib/types'
 import {
   startSession, finishSession, getSessionPlan, type SessionSummary,
 } from './lib/api'
-import { StartScreen } from './components/StartScreen'
+import { Dashboard } from './components/Dashboard'
 import { PracticeScreen } from './components/PracticeScreen'
 import { SummaryScreen } from './components/SummaryScreen'
+import { ProgressPage } from './components/ProgressPage'
+import { SettingsPage } from './components/SettingsPage'
 
-type Screen = 'start' | 'loading' | 'practice' | 'summary'
+type Screen =
+  | 'dashboard' | 'loading' | 'practice' | 'summary' | 'progress' | 'settings'
 
 export default function App() {
-  const [screen, setScreen] = useState<Screen>('start')
+  const [screen, setScreen] = useState<Screen>('dashboard')
   const [plan, setPlan] = useState<SessionPlan | null>(null)
   const [results, setResults] = useState<QuestionResult[]>([])
   const [summary, setSummary] = useState<SessionSummary | null>(null)
@@ -24,7 +27,7 @@ export default function App() {
       setScreen('practice')
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
-      setScreen('start')
+      setScreen('dashboard')
     }
   }
 
@@ -41,23 +44,33 @@ export default function App() {
     }
   }
 
-  if (screen === 'start') {
-    return <StartScreen onStart={handleStart} error={error} />
-  }
   if (screen === 'loading') {
-    return (
-      <div style={{ textAlign: 'center', marginTop: '20vh' }}>Loading…</div>
-    )
+    return <div style={{ textAlign: 'center', marginTop: '20vh' }}>Loading…</div>
   }
   if (screen === 'practice' && plan) {
     return <PracticeScreen plan={plan} onComplete={handleComplete} />
   }
+  if (screen === 'summary') {
+    return (
+      <SummaryScreen
+        results={results}
+        summary={summary}
+        saveError={error}
+        onRestart={() => setScreen('dashboard')}
+      />
+    )
+  }
+  if (screen === 'progress') {
+    return <ProgressPage onBack={() => setScreen('dashboard')} />
+  }
+  if (screen === 'settings') {
+    return <SettingsPage onBack={() => setScreen('dashboard')} />
+  }
   return (
-    <SummaryScreen
-      results={results}
-      summary={summary}
-      saveError={error}
-      onRestart={() => setScreen('start')}
+    <Dashboard
+      onStartDrill={handleStart}
+      onOpenProgress={() => setScreen('progress')}
+      onOpenSettings={() => setScreen('settings')}
     />
   )
 }
