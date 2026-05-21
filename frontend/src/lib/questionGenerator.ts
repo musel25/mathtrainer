@@ -8,6 +8,26 @@ const OPERATIONS: Operation[] = [
   'add', 'subtract', 'multiply', 'divide', 'square', 'percent',
 ]
 
+const DEFAULT_OP_RATING = 50
+
+/**
+ * Builds the operation pool, repeating each operation by a weight derived from
+ * its rating: a weak op (rating ~30) is weighted ~8x vs a strong op (~95), up
+ * to a maximum ratio of 10x (rating 1 vs 100). Every operation appears at
+ * least once.
+ */
+function weightedPool(
+  operationRatings: Partial<Record<Operation, number>>,
+): Operation[] {
+  const pool: Operation[] = []
+  for (const op of OPERATIONS) {
+    const rating = operationRatings[op] ?? DEFAULT_OP_RATING
+    const weight = Math.max(1, Math.round((105 - rating) / 10))
+    for (let i = 0; i < weight; i++) pool.push(op)
+  }
+  return pool
+}
+
 function randInt(rng: Rng, min: number, max: number): number {
   return min + Math.floor(rng() * (max - min + 1))
 }
@@ -108,17 +128,17 @@ function buildRaw(rng: Rng, op: Operation): Omit<Question, 'difficulty'> {
 /**
  * Generates a question whose difficulty falls inside `band`. Uses bounded
  * rejection sampling; if no candidate lands in the band within the retry
- * budget, returns the closest one found. Operations listed in `weakOps` are
- * over-sampled (entered twice into the operation pool). `rng` is injectable
- * for testing.
+ * budget, returns the closest one found. The operation is drawn from a pool
+ * weighted by `operationRatings` — lower-rated operations are over-sampled.
+ * `rng` is injectable for testing.
  */
 export function generateQuestion(
   band: DifficultyBand,
   rng: Rng = Math.random,
-  weakOps: Operation[] = [],
+  operationRatings: Partial<Record<Operation, number>> = {},
 ): Question {
   const MAX_TRIES = 40
-  const pool: Operation[] = [...OPERATIONS, ...weakOps]
+  const pool: Operation[] = weightedPool(operationRatings)
   let best: Question | null = null
   let bestDist = Infinity
 

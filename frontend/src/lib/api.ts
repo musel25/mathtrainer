@@ -75,7 +75,7 @@ export async function getSessionPlan(): Promise<SessionPlan> {
   return {
     rating: raw.rating as number,
     targetBand: { min: raw.target_band.min, max: raw.target_band.max },
-    weakOperations: raw.weak_operations as Operation[],
+    operationRatings: raw.operation_ratings as Record<Operation, number>,
     sessionLength: raw.session_length as number,
   }
 }
@@ -105,6 +105,7 @@ export async function getProgress(): Promise<Progress> {
         operation: o.operation, avgMs: o.avg_ms,
       }),
     ),
+    operationRatings: r.operation_ratings as Record<Operation, number>,
   }
 }
 

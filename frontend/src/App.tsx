@@ -36,7 +36,7 @@ export default function App() {
       const plan = await getSessionPlan()
       setPractice({
         source: () =>
-          generateQuestion(plan.targetBand, Math.random, plan.weakOperations),
+          generateQuestion(plan.targetBand, Math.random, plan.operationRatings),
         total: plan.sessionLength,
         mode: 'daily',
       })
