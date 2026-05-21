@@ -39,3 +39,14 @@ class SessionSummary(BaseModel):
     rating_before: float
     rating_after: float
     weak_operations: list[str]
+
+
+class DifficultyBandModel(BaseModel):
+    min: float
+    max: float
+
+
+class SessionPlan(BaseModel):
+    rating: float
+    target_band: DifficultyBandModel
+    weak_operations: list[str]

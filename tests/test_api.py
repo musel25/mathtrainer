@@ -74,3 +74,12 @@ def test_finish_session_persists_model_state(client):
 def test_finish_session_404_on_unknown_session(client):
     resp = client.post("/api/sessions/9999/finish", json={"attempts": []})
     assert resp.status_code == 404
+
+
+def test_session_plan_default_for_fresh_db(client):
+    resp = client.get("/api/session-plan")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["rating"] == 50.0
+    assert body["target_band"]["min"] < body["target_band"]["max"]
+    assert body["weak_operations"] == []

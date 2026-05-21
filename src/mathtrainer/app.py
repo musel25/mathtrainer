@@ -12,6 +12,7 @@ from .models import (
     SessionCreateIn,
     SessionCreateOut,
     SessionFinishIn,
+    SessionPlan,
     SessionSummary,
 )
 
@@ -30,6 +31,21 @@ def _get_conn() -> sqlite3.Connection:
 @app.get("/api/health")
 def health() -> dict:
     return {"status": "ok"}
+
+
+@app.get("/api/session-plan", response_model=SessionPlan)
+def session_plan() -> SessionPlan:
+    conn = _get_conn()
+    try:
+        state = db.load_model_state(conn) or model.default_model_state()
+        band = model.target_band(state)
+        return SessionPlan(
+            rating=state["rating"],
+            target_band={"min": band["min"], "max": band["max"]},
+            weak_operations=model.weak_operations(state),
+        )
+    finally:
+        conn.close()
 
 
 @app.post("/api/sessions", response_model=SessionCreateOut)
