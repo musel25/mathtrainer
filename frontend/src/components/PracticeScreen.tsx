@@ -60,6 +60,7 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
   }, [question])
 
   function nextQuestion(updated: SessionState) {
+    feedbackTimerRef.current = null
     if (isComplete(updated)) {
       onComplete(updated.results)
       return
