@@ -51,7 +51,7 @@ export function SummaryScreen({
           <div className="text-[10px] uppercase tracking-[0.12em] text-muted">
             Rating
           </div>
-          <div className={`font-mono text-2xl ${up ? 'text-success' : 'text-error'}`}>
+          <div className={`font-mono text-2xl ${summary ? (up ? 'text-success' : 'text-error') : 'text-dim'}`}>
             {summary
               ? `${up ? '▲' : '▼'}${Math.abs(ratingDelta).toFixed(1)}`
               : '—'}
