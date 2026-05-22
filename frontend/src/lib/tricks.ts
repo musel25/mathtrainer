@@ -90,8 +90,8 @@ export const TRICKS: Trick[] = [
     applies: (q) =>
       q.operation === 'multiply' &&
       q.operands.length === 2 &&
-      q.operands[0] >= 10 && q.operands[0] <= 99 &&
-      q.operands[1] >= 10 && q.operands[1] <= 99,
+      q.operands[0] >= 11 && q.operands[0] <= 99 &&
+      q.operands[1] >= 11 && q.operands[1] <= 99,
     generate: (rng) => {
       const a = randInt(rng, 11, 99)
       const b = randInt(rng, 11, 99)
