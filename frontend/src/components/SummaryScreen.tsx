@@ -27,12 +27,12 @@ export function SummaryScreen({
     <div className="mx-auto max-w-[480px] px-4 py-12">
       <h2 className="mb-6 text-center font-mono text-xl">session complete</h2>
 
-      <div className="mb-4 grid grid-cols-3 gap-3">
+      <div className="mb-4 grid grid-cols-2 gap-3">
         <Card className="p-3 text-center">
           <div className="text-[10px] uppercase tracking-[0.12em] text-muted">
             Accuracy
           </div>
-          <div className="font-mono text-2xl">
+          <div className="font-mono font-bold text-2xl">
             {(stats.accuracy * 100).toFixed(0)}%
           </div>
           <div className="font-mono text-xs text-dim">
@@ -43,15 +43,23 @@ export function SummaryScreen({
           <div className="text-[10px] uppercase tracking-[0.12em] text-muted">
             Avg time
           </div>
-          <div className="font-mono text-2xl">
+          <div className="font-mono font-bold text-2xl">
             {(stats.avgMsToSubmit / 1000).toFixed(1)}s
+          </div>
+        </Card>
+        <Card className="p-3 text-center">
+          <div className="text-[10px] uppercase tracking-[0.12em] text-muted">
+            Score
+          </div>
+          <div className="font-mono font-bold text-2xl">
+            {summary ? summary.total_score.toFixed(0) : '—'}
           </div>
         </Card>
         <Card className="p-3 text-center">
           <div className="text-[10px] uppercase tracking-[0.12em] text-muted">
             Rating
           </div>
-          <div className={`font-mono text-2xl ${summary ? (up ? 'text-success' : 'text-error') : 'text-dim'}`}>
+          <div className={`font-mono font-bold text-2xl ${summary ? (up ? 'text-success' : 'text-error') : 'text-dim'}`}>
             {summary
               ? `${up ? '▲' : '▼'}${Math.abs(ratingDelta).toFixed(1)}`
               : '—'}
@@ -66,7 +74,7 @@ export function SummaryScreen({
 
       {summary && (
         <p className="mb-4 text-center font-mono text-xs text-dim">
-          score {summary.total_score.toFixed(0)} · saved #{summary.session_id}
+          saved #{summary.session_id}
         </p>
       )}
       {summary && summary.weak_operations.length > 0 && (
