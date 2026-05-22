@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import {
+  useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent,
+} from 'react'
 import type { Question, QuestionResult } from '../lib/types'
 import {
   createSession, recordResult, isComplete, type SessionState,
@@ -119,7 +121,7 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
     }
   }
 
-  function onKeyDown(e: KeyboardEvent) {
+  function onKeyDown(e: ReactKeyboardEvent) {
     if (e.key === 'Escape') {
       skip()
       return
@@ -133,6 +135,22 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
   function handleNext() {
     nextQuestion(session)
   }
+
+  // While paused on a miss, Enter/Space advances. The listener is registered
+  // only AFTER the miss state commits, so the keypress that submitted the
+  // answer (already fired) cannot bleed through and skip the explanation.
+  useEffect(() => {
+    if (!missed) return
+    function advance(e: KeyboardEvent) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault()
+        handleNext()
+      }
+    }
+    window.addEventListener('keydown', advance)
+    return () => window.removeEventListener('keydown', advance)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [missed])
 
   const progress = `[${String(session.results.length + 1).padStart(2, '0')}`
     + `/${String(TOTAL).padStart(2, '0')}]`
@@ -203,12 +221,14 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
           {trick && <TrickExplanation trick={trick} />}
           <Button
             variant="primary"
-            autoFocus
             onClick={handleNext}
             className="mt-4 px-6 py-2"
           >
             Next →
           </Button>
+          <div className="mt-1 font-mono text-xs text-dim">
+            press Enter or Space
+          </div>
         </>
       )}
     </div>
