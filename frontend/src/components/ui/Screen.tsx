@@ -12,7 +12,7 @@ export function Screen({ title, onBack, width = 600, children }: Props) {
   return (
     <div className="mx-auto px-4 py-10" style={{ maxWidth: width }}>
       {onBack && (
-        <Button onClick={onBack} className="mb-4">← Back</Button>
+        <Button onClick={onBack} aria-label="Go back" className="mb-4">← Back</Button>
       )}
       {title && (
         <h2 className="mb-6 text-center font-mono text-xl text-text">{title}</h2>
