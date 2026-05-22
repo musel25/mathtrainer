@@ -130,7 +130,7 @@ describe('percent-building-blocks', () => {
     for (let i = 0; i < 50; i++) {
       const q = t.generate(Math.random)
       const [pct, base] = q.operands
-      expect(q.answer).toBe((pct / 100) * base)
+      expect(q.answer).toBe((pct * base) / 100)
       expect(Number.isInteger(q.answer)).toBe(true)
       expect(t.applies(q)).toBe(true)
     }

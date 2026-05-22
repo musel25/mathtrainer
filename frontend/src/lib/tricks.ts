@@ -939,11 +939,13 @@ export const TRICKS: Trick[] = [
     tip: 'Any %: build it from 10%, 5% and 1% chunks, then add them up.',
     applies: (q) => q.operation === 'percent',
     generate: (rng) => {
-      const pct = pick(rng, [12, 15, 32, 37, 45, 48, 65, 85])
+      const pct = pick(rng, [12, 15, 35, 37, 45, 55, 65, 85])
       const base = randInt(rng, 1, 20) * 100
+      // multiply before dividing: pct*base is a multiple of 100, so the
+      // result is an exact integer (avoids float error like 0.35*700).
       return makeQuestion(
         'percent', [pct, base], `${pct}% of ${base}`,
-        (pct / 100) * base, 'percent-building-blocks',
+        (pct * base) / 100, 'percent-building-blocks',
       )
     },
   },
