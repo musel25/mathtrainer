@@ -4,6 +4,8 @@ import {
   createSession, recordResult, isComplete, type SessionState,
 } from '../lib/session'
 import { TRICK_BY_SLUG } from '../lib/tricks'
+import { Button } from './ui/Button'
+import { TrickExplanation } from './TrickExplanation'
 
 interface Props {
   questionSource: () => Question
@@ -24,18 +26,22 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const submittedRef = useRef(false)
 
+  // a miss (wrong answer or skip): the screen pauses on the explanation
+  const missed = feedback !== null && feedback !== 'correct'
+
   // stamp the render time for each question — done in an effect, not during
   // render, so the component stays pure (react-hooks/purity)
   useEffect(() => {
     renderedAt.current = performance.now()
   }, [question])
 
-  // live timer
+  // live timer — stops updating once the question has been answered
   useEffect(() => {
-    const id = setInterval(
-      () => setElapsed(performance.now() - renderedAt.current),
-      100,
-    )
+    const id = setInterval(() => {
+      if (!submittedRef.current) {
+        setElapsed(performance.now() - renderedAt.current)
+      }
+    }, 100)
     return () => clearInterval(id)
   }, [question])
 
@@ -65,9 +71,10 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
     submittedRef.current = false
   }
 
-  function submit(value: number) {
+  // `value` is null for a skip ("I don't know").
+  function submit(value: number | null) {
     const now = performance.now()
-    const isCorrect = value === question.answer
+    const isCorrect = value !== null && value === question.answer
     const result: QuestionResult = {
       question,
       givenAnswer: value,
@@ -79,27 +86,51 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
     }
     const updated = recordResult(session, result)
     setSession(updated)
-    setFeedback(isCorrect ? 'correct' : `answer ${question.answer}`)
-    // brief feedback pause, then advance
-    feedbackTimerRef.current = setTimeout(
-      () => nextQuestion(updated),
-      isCorrect ? 350 : 1100,
-    )
+    if (isCorrect) {
+      setFeedback('correct')
+      // brief flash, then advance
+      feedbackTimerRef.current = setTimeout(() => nextQuestion(updated), 350)
+    } else if (value === null) {
+      setFeedback(`skipped — answer ${question.answer}`)
+    } else {
+      setFeedback(`answer ${question.answer}`)
+    }
+    // a miss does not auto-advance — the user continues via the Next button
+  }
+
+  function skip() {
+    if (submittedRef.current) return
+    submittedRef.current = true
+    submit(null)
   }
 
   function onChange(raw: string) {
+    if (submittedRef.current) return
     const digits = raw.replace(/[^0-9]/g, '')
     if (digits && firstKeyAt.current === null) {
       firstKeyAt.current = performance.now()
     }
     setInput(digits)
+    // instant recognition: accept the moment the typed value is correct
+    if (digits.length > 0 && Number(digits) === question.answer) {
+      submittedRef.current = true
+      submit(Number(digits))
+    }
   }
 
   function onKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      skip()
+      return
+    }
     if (e.key === 'Enter' && !submittedRef.current && input.length > 0) {
       submittedRef.current = true
       submit(Number(input))
     }
+  }
+
+  function handleNext() {
+    nextQuestion(session)
   }
 
   const progress = `[${String(session.results.length + 1).padStart(2, '0')}`
@@ -111,6 +142,10 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
     : feedback
       ? 'border-error'
       : 'border-accent'
+
+  const trick = question.features.trickSlug
+    ? TRICK_BY_SLUG[question.features.trickSlug]
+    : undefined
 
   return (
     <div className="mx-auto flex max-w-[420px] flex-col items-center px-4 pt-[15vh]">
@@ -138,22 +173,43 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
           disabled:opacity-70 ${inputBorder}`}
       />
 
-      <div className="mt-2 h-4 font-mono text-xs text-dim">
-        {feedback === null && 'press Enter'}
+      <div className="mt-2 flex h-7 items-center gap-3 font-mono text-xs text-dim">
+        {feedback === null && (
+          <>
+            <span>type the answer</span>
+            <button
+              onClick={skip}
+              className="rounded border border-border-strong px-2 py-0.5 text-dim
+                transition-colors hover:border-error hover:text-error"
+            >
+              I don't know (Esc)
+            </button>
+          </>
+        )}
       </div>
 
       <div aria-live="polite" className="mt-1 h-7 font-mono text-sm">
         {feedback === 'correct' && <span className="text-success">✓ correct</span>}
-        {feedback && feedback !== 'correct' && (
-          <span className="text-error">✗ {feedback}</span>
-        )}
+        {missed && <span className="text-error">✗ {feedback}</span>}
       </div>
 
-      <div className="mt-1 h-7 text-sm text-streak">
-        {feedback !== null && question.features.trickSlug && (
-          <span>💡 {TRICK_BY_SLUG[question.features.trickSlug]?.tip}</span>
-        )}
-      </div>
+      {feedback === 'correct' && trick && (
+        <div className="mt-1 h-7 text-sm text-streak">💡 {trick.tip}</div>
+      )}
+
+      {missed && (
+        <>
+          {trick && <TrickExplanation trick={trick} />}
+          <Button
+            variant="primary"
+            autoFocus
+            onClick={handleNext}
+            className="mt-4 px-6 py-2"
+          >
+            Next →
+          </Button>
+        </>
+      )}
     </div>
   )
 }
