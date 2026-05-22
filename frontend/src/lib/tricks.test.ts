@@ -57,3 +57,21 @@ describe('multiplication shortcuts ×3 ×6 ×7', () => {
     }
   })
 })
+
+describe('general methods are excluded from detectTrick', () => {
+  it('mult-2digit-crisscross is registered as a general method', () => {
+    const t = TRICK_BY_SLUG['mult-2digit-crisscross']
+    expect(t).toBeTruthy()
+    expect(t.autoDetect).toBe(false)
+  })
+
+  it('detectTrick skips general methods', () => {
+    // 23 × 41 matches no auto-detected trick; only the general
+    // crisscross method applies, and it must be skipped.
+    expect(detectTrick({ operation: 'multiply', operands: [23, 41] })).toBeNull()
+  })
+
+  it('detectTrick still resolves auto-detected shortcuts', () => {
+    expect(detectTrick({ operation: 'multiply', operands: [47, 11] })).toBe('times-11')
+  })
+})

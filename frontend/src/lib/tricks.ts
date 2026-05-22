@@ -14,6 +14,13 @@ export interface Trick {
   category: TrickCategory
   lesson: string
   tip: string
+  /**
+   * When false, this is a "general method" — it applies to almost any
+   * question of its type, so `detectTrick` skips it (to avoid blanket
+   * difficulty relief and false labeling). It still appears in the
+   * catalog and Learn mode. Defaults to true (a pattern shortcut).
+   */
+  autoDetect?: boolean
   applies: (q: Pick<Question, 'operation' | 'operands'>) => boolean
   generate: (rng: () => number) => Question
 }
@@ -61,6 +68,38 @@ function makeQuestion(
 
 export const TRICKS: Trick[] = [
   // ─── Multiplication ────────────────────────────────────────────────────
+  {
+    slug: 'mult-2digit-crisscross',
+    name: 'Two-digit × two-digit (criss-cross)',
+    category: 'multiplication',
+    autoDetect: false,
+    lesson:
+      'To multiply two 2-digit numbers, split each into tens and units and ' +
+      'build three pieces:\n' +
+      '  • units × units\n' +
+      '  • the cross sum: (tens of one × units of the other), both ways, ' +
+      'added together\n' +
+      '  • tens × tens\n\n' +
+      'Place units×units in the ones column, the cross sum in the tens ' +
+      'column, and tens×tens in the hundreds column — carrying as needed.\n\n' +
+      'Example: 23 × 41 → units 3×1 = 3 → cross 2×1 + 3×4 = 14 → ' +
+      'tens 2×4 = 8.\n' +
+      '3 in the ones, 14 in the tens (carry 1), 8 + 1 = 9 in the hundreds ' +
+      '→ 943.',
+    tip: '2-digit × 2-digit: units×units, cross sum, tens×tens — carry as you go.',
+    applies: (q) =>
+      q.operation === 'multiply' &&
+      q.operands.length === 2 &&
+      q.operands[0] >= 10 && q.operands[0] <= 99 &&
+      q.operands[1] >= 10 && q.operands[1] <= 99,
+    generate: (rng) => {
+      const a = randInt(rng, 11, 99)
+      const b = randInt(rng, 11, 99)
+      return makeQuestion(
+        'multiply', [a, b], `${a} × ${b}`, a * b, 'mult-2digit-crisscross',
+      )
+    },
+  },
   {
     slug: 'times-11',
     name: 'Multiply by 11',
@@ -958,7 +997,7 @@ export function detectTrick(
   q: Pick<Question, 'operation' | 'operands'>,
 ): string | null {
   for (const t of TRICKS) {
-    if (t.applies(q)) return t.slug
+    if (t.autoDetect !== false && t.applies(q)) return t.slug
   }
   return null
 }
