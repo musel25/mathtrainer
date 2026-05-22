@@ -553,7 +553,7 @@ describe('percent-building-blocks', () => {
     for (let i = 0; i < 50; i++) {
       const q = t.generate(Math.random)
       const [pct, base] = q.operands
-      expect(q.answer).toBe((pct / 100) * base)
+      expect(q.answer).toBe((pct * base) / 100)
       expect(Number.isInteger(q.answer)).toBe(true)
       expect(t.applies(q)).toBe(true)
     }
@@ -587,9 +587,11 @@ In `frontend/src/lib/tricks.ts`, insert this object into the `TRICKS` array imme
     generate: (rng) => {
       const pct = pick(rng, [12, 15, 35, 37, 45, 55, 65, 85])
       const base = randInt(rng, 1, 20) * 100
+      // multiply before dividing: pct*base is a multiple of 100, so the
+      // result is an exact integer (avoids float error like 0.35*700).
       return makeQuestion(
         'percent', [pct, base], `${pct}% of ${base}`,
-        (pct / 100) * base, 'percent-building-blocks',
+        (pct * base) / 100, 'percent-building-blocks',
       )
     },
   },
