@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { TRICKS, TRICK_BY_SLUG, detectTrick } from './tricks'
+import { TRICKS, TRICK_BY_SLUG, detectTrick, applicableTricks } from './tricks'
 
 describe('trick library', () => {
   it('every trick has the required fields', () => {
@@ -33,5 +33,15 @@ describe('trick library', () => {
     const times11 = TRICK_BY_SLUG['times-11'].generate(Math.random)
     expect(detectTrick(times11)).toBe('times-11')
     expect(detectTrick({ operation: 'add', operands: [12, 34] })).toBeNull()
+  })
+
+  it('applicableTricks returns every trick that matches a question', () => {
+    const q = TRICK_BY_SLUG['times-11'].generate(Math.random)
+    const matches = applicableTricks(q)
+    expect(matches.some((t) => t.slug === 'times-11')).toBe(true)
+    for (const t of matches) {
+      expect(t.applies(q)).toBe(true)
+    }
+    expect(applicableTricks({ operation: 'add', operands: [12, 34] })).toEqual([])
   })
 })
