@@ -1,10 +1,16 @@
 import { useEffect, useState } from 'react'
 import type { Settings } from '../lib/types'
 import { getSettings, putSettings } from '../lib/api'
+import { Screen } from './ui/Screen'
+import { Button } from './ui/Button'
 
 interface Props {
   onBack: () => void
 }
+
+const FIELD = 'mt-1.5 block w-32 rounded-md border border-border-strong '
+  + 'bg-surface px-3 py-2 font-mono text-lg text-text caret-accent '
+  + 'outline-none focus:border-accent'
 
 export function SettingsPage({ onBack }: Props) {
   const [settings, setSettings] = useState<Settings | null>(null)
@@ -35,39 +41,36 @@ export function SettingsPage({ onBack }: Props) {
   }
 
   return (
-    <div style={{ maxWidth: 420, margin: '8vh auto', padding: '0 16px' }}>
-      <button onClick={onBack} style={{ padding: '6px 14px' }}>← Back</button>
-      <h2 style={{ textAlign: 'center' }}>Settings</h2>
-
-      {error && <p style={{ color: 'crimson' }}>{error}</p>}
-      {!error && !settings && <p>Loading…</p>}
+    <Screen title="Settings" onBack={onBack} width={420}>
+      {error && <p className="text-error">{error}</p>}
+      {!error && !settings && <p className="text-muted">Loading…</p>}
 
       {settings && (
-        <>
-          <label style={{ display: 'block', margin: '16px 0' }}>
+        <div className="flex flex-col gap-5">
+          <label className="block text-sm text-text">
             Daily goal (questions per day)
             <input
               type="number" min={1}
               value={settings.dailyGoal}
               onChange={(e) => update({ dailyGoal: Number(e.target.value) })}
-              style={{ display: 'block', fontSize: 18, width: 120, marginTop: 4 }}
+              className={FIELD}
             />
           </label>
-          <label style={{ display: 'block', margin: '16px 0' }}>
+          <label className="block text-sm text-text">
             Questions per drill
             <input
               type="number" min={1} max={50}
               value={settings.sessionLength}
               onChange={(e) => update({ sessionLength: Number(e.target.value) })}
-              style={{ display: 'block', fontSize: 18, width: 120, marginTop: 4 }}
+              className={FIELD}
             />
           </label>
-          <button onClick={save} style={{ fontSize: 16, padding: '8px 20px' }}>
-            Save
-          </button>
-          {status && <span style={{ color: 'green', marginLeft: 12 }}>{status}</span>}
-        </>
+          <div className="flex items-center gap-3">
+            <Button variant="primary" onClick={save}>Save</Button>
+            {status && <span className="text-sm text-success">{status}</span>}
+          </div>
+        </div>
       )}
-    </div>
+    </Screen>
   )
 }
