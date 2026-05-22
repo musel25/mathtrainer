@@ -77,7 +77,7 @@ export function Dashboard({
 
       <div className="my-6 text-left">
         <div className="mb-1.5 font-mono text-xs text-muted">
-          today  {data.today.questions}/{data.today.goal}
+          today {data.today.questions}/{data.today.goal}
         </div>
         <ProgressBar value={data.today.questions} max={data.today.goal} />
       </div>
