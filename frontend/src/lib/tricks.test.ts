@@ -75,3 +75,21 @@ describe('general methods are excluded from detectTrick', () => {
     expect(detectTrick({ operation: 'multiply', operands: [47, 11] })).toBe('times-11')
   })
 })
+
+describe('mult-1digit-placevalue', () => {
+  it('is a registered general method', () => {
+    const t = TRICK_BY_SLUG['mult-1digit-placevalue']
+    expect(t).toBeTruthy()
+    expect(t.autoDetect).toBe(false)
+  })
+
+  it('generates a 2-digit × 1-digit question with the correct answer', () => {
+    const t = TRICK_BY_SLUG['mult-1digit-placevalue']
+    for (let i = 0; i < 50; i++) {
+      const q = t.generate(Math.random)
+      const [a, b] = q.operands
+      expect(q.answer).toBe(a * b)
+      expect(t.applies(q)).toBe(true)
+    }
+  })
+})

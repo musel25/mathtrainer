@@ -69,6 +69,32 @@ function makeQuestion(
 export const TRICKS: Trick[] = [
   // ─── Multiplication ────────────────────────────────────────────────────
   {
+    slug: 'mult-1digit-placevalue',
+    name: 'Two-digit × one-digit (place value)',
+    category: 'multiplication',
+    autoDetect: false,
+    lesson:
+      'To multiply a 2-digit number by a single digit, split the 2-digit ' +
+      'number into its tens and units, multiply each part separately, then ' +
+      'add the two results.\n\n' +
+      'Example: 47 × 6 → 40 × 6 = 240, 7 × 6 = 42, then 240 + 42 = 282.',
+    tip: '2-digit × 1-digit: multiply the tens and the units separately, then add.',
+    applies: (q) => {
+      if (q.operation !== 'multiply' || q.operands.length !== 2) return false
+      const [a, b] = q.operands
+      const twoDigit = (n: number) => n >= 10 && n <= 99
+      const oneDigit = (n: number) => n >= 2 && n <= 9
+      return (twoDigit(a) && oneDigit(b)) || (oneDigit(a) && twoDigit(b))
+    },
+    generate: (rng) => {
+      const a = randInt(rng, 12, 99)
+      const b = randInt(rng, 3, 9)
+      return makeQuestion(
+        'multiply', [a, b], `${a} × ${b}`, a * b, 'mult-1digit-placevalue',
+      )
+    },
+  },
+  {
     slug: 'mult-2digit-crisscross',
     name: 'Two-digit × two-digit (criss-cross)',
     category: 'multiplication',
