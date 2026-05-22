@@ -1,6 +1,91 @@
-import {
-  useEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent,
-} from 'react'
+# Practice-Screen Improvements Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Add three practice-screen behaviors — instant correct-answer recognition, an "I don't know" skip, and a pause-with-trick-explanation on every miss.
+
+**Architecture:** All logic stays in `PracticeScreen.tsx`. A small new presentational component, `TrickExplanation.tsx`, renders a trick's full lesson during the paused state. A skip is recorded as an ordinary incorrect `QuestionResult` (`givenAnswer: null`) — no backend, API, type, or scoring-model change.
+
+**Tech Stack:** React 19, TypeScript, Tailwind v4, Vite.
+
+**Reference spec:** `docs/superpowers/specs/2026-05-22-practice-screen-improvements-design.md`
+
+**Working branch:** `feat/practice-improvements` (already created and checked out).
+
+---
+
+## File Structure
+
+**Created:**
+- `frontend/src/components/TrickExplanation.tsx` — renders one trick's name + full lesson in a Sharp/Techy `Card`.
+
+**Modified:**
+- `frontend/src/components/PracticeScreen.tsx` — instant auto-submit on exact match; skip (button + Esc); pause-on-miss with `TrickExplanation` + `Next →` button; timer freezes on answer.
+- `frontend/src/components/SummaryScreen.tsx` — review row shows `skipped` for a skipped question.
+
+No other files change. No backend changes.
+
+---
+
+## Task 1: TrickExplanation component
+
+**Files:**
+- Create: `frontend/src/components/TrickExplanation.tsx`
+
+- [ ] **Step 1: Create the component**
+
+Create `frontend/src/components/TrickExplanation.tsx` with exactly:
+
+```tsx
+import type { Trick } from '../lib/tricks'
+import { Card } from './ui/Card'
+
+interface Props {
+  trick: Trick
+}
+
+/** The full explanation of a trick — shown when the user misses a question. */
+export function TrickExplanation({ trick }: Props) {
+  return (
+    <Card className="mt-4 w-full max-w-[420px] p-4 text-left">
+      <div className="mb-1 font-mono text-sm text-streak">💡 {trick.name}</div>
+      <p className="whitespace-pre-line text-sm text-muted">{trick.lesson}</p>
+    </Card>
+  )
+}
+```
+
+- [ ] **Step 2: Verify the build**
+
+Run: `cd frontend && npm run build`
+Expected: PASS. The component is unused so far but must typecheck and bundle.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add frontend/src/components/TrickExplanation.tsx
+git commit -m "feat: add TrickExplanation component"
+```
+
+---
+
+## Task 2: PracticeScreen — auto-submit, skip, pause-on-miss
+
+This task changes behavior:
+- A correct answer is accepted the instant the typed digits equal it (no Enter).
+- An "I don't know" button and the Esc key skip the question (recorded as incorrect, `givenAnswer: null`).
+- A wrong answer or a skip stops on the trick explanation with a `Next →` button instead of auto-advancing; a correct answer still auto-advances after ~350 ms.
+- The on-screen timer freezes once the question is answered.
+
+**Files:**
+- Modify: `frontend/src/components/PracticeScreen.tsx`
+
+- [ ] **Step 1: Rewrite the file**
+
+Replace the ENTIRE contents of `frontend/src/components/PracticeScreen.tsx` with exactly:
+
+```tsx
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { Question, QuestionResult } from '../lib/types'
 import {
   createSession, recordResult, isComplete, type SessionState,
@@ -27,7 +112,6 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const submittedRef = useRef(false)
-  const sessionRef = useRef(session)
 
   // a miss (wrong answer or skip): the screen pauses on the explanation
   const missed = feedback !== null && feedback !== 'correct'
@@ -62,13 +146,7 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
     inputRef.current?.focus()
   }, [question])
 
-  // keep the latest session reachable from the keydown listener
-  useEffect(() => {
-    sessionRef.current = session
-  }, [session])
-
   function nextQuestion(updated: SessionState) {
-    feedbackTimerRef.current = null
     if (isComplete(updated)) {
       onComplete(updated.results)
       return
@@ -127,7 +205,7 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
     }
   }
 
-  function onKeyDown(e: ReactKeyboardEvent) {
+  function onKeyDown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       skip()
       return
@@ -139,30 +217,8 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
   }
 
   function handleNext() {
-    nextQuestion(sessionRef.current)
+    nextQuestion(session)
   }
-
-  // While paused on a miss, Enter/Space advances. Arming is deferred to a
-  // later task: the keypress that submitted the answer is still propagating
-  // when this effect runs, so an immediately-live listener would catch it and
-  // skip the explanation.
-  useEffect(() => {
-    if (!missed) return
-    let armed = false
-    const armId = setTimeout(() => { armed = true }, 0)
-    function advance(e: KeyboardEvent) {
-      if (armed && (e.key === 'Enter' || e.key === ' ')) {
-        e.preventDefault()
-        handleNext()
-      }
-    }
-    window.addEventListener('keydown', advance)
-    return () => {
-      clearTimeout(armId)
-      window.removeEventListener('keydown', advance)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [missed])
 
   const progress = `[${String(session.results.length + 1).padStart(2, '0')}`
     + `/${String(TOTAL).padStart(2, '0')}]`
@@ -233,16 +289,103 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
           {trick && <TrickExplanation trick={trick} />}
           <Button
             variant="primary"
+            autoFocus
             onClick={handleNext}
             className="mt-4 px-6 py-2"
           >
             Next →
           </Button>
-          <div className="mt-1 font-mono text-xs text-dim">
-            press Enter or Space
-          </div>
         </>
       )}
     </div>
   )
 }
+```
+
+- [ ] **Step 2: Verify build, lint, and tests**
+
+Run: `cd frontend && npm run build && npm run lint && npm test`
+Expected: build PASS; lint PASS (zero errors); all existing tests PASS.
+
+- [ ] **Step 3: Manually verify the three behaviors**
+
+Start the dev server (`cd frontend && npm run dev`, backend also running) and start a drill. Confirm:
+- Typing the exact correct answer accepts it instantly with no Enter; a wrong/partial entry does NOT auto-submit and stays correctable with Backspace.
+- The "I don't know" button and the Esc key both skip — the screen then pauses showing `✗ skipped — answer N`.
+- A wrong answer and a skip both stop on the explanation (full trick lesson when the question has a trick) with a `Next →` button; Space/Enter and a click all advance it.
+- A correct answer still auto-advances after a brief flash.
+- The timer freezes the moment you answer.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add frontend/src/components/PracticeScreen.tsx
+git commit -m "feat: instant correct-answer recognition, skip, and pause-on-miss"
+```
+
+---
+
+## Task 3: SummaryScreen — show "skipped" in the review
+
+**Files:**
+- Modify: `frontend/src/components/SummaryScreen.tsx`
+
+- [ ] **Step 1: Update the review row**
+
+In `frontend/src/components/SummaryScreen.tsx`, find this block:
+
+```tsx
+            {!r.isCorrect && (
+              <span className="text-error">you: {r.givenAnswer ?? '—'}</span>
+            )}
+```
+
+Replace it with:
+
+```tsx
+            {!r.isCorrect && (
+              <span className="text-error">
+                {r.givenAnswer === null ? 'skipped' : `you: ${r.givenAnswer}`}
+              </span>
+            )}
+```
+
+- [ ] **Step 2: Verify build, lint, and tests**
+
+Run: `cd frontend && npm run build && npm run lint && npm test`
+Expected: build PASS; lint PASS (zero errors); all existing tests PASS.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add frontend/src/components/SummaryScreen.tsx
+git commit -m "feat: label skipped questions in the session review"
+```
+
+---
+
+## Task 4: Full verification
+
+**Files:** none (verification only)
+
+- [ ] **Step 1: Frontend lint, test, build**
+
+Run: `cd /home/musel/Github/mathtrainer/frontend && npm run lint && npm test && npm run build`
+Expected: lint PASS (zero errors), all tests PASS, build PASS.
+
+- [ ] **Step 2: Backend tests**
+
+Run from the repo root: `cd /home/musel/Github/mathtrainer && uv run pytest -q`
+Expected: all tests PASS (no backend changes were made).
+
+- [ ] **Step 3: Report**
+
+Report the exact results of Steps 1–2. Do not modify any files.
+
+---
+
+## Self-Review Notes
+
+- **Spec coverage:** Feature 1 (instant auto-submit) → Task 2 `onChange`. Feature 2 (skip button + Esc) → Task 2 `skip`/`onKeyDown`/skip button. Feature 3 (pause-on-miss + `TrickExplanation` + `Next →` + timer freeze) → Task 1 + Task 2. Summary "skipped" label → Task 3. No backend/API/model/type changes — consistent with the spec.
+- **Type consistency:** `submit(value: number | null)`, `QuestionResult.givenAnswer: number | null`, `TRICK_BY_SLUG` → `Trick`, `TrickExplanation` prop `trick: Trick` — all consistent across tasks.
+- **No placeholders:** every code step contains full file contents or an exact find-and-replace.

@@ -104,7 +104,9 @@ export function SummaryScreen({
               {r.question.prompt} = {r.question.answer}
             </span>
             {!r.isCorrect && (
-              <span className="text-error">you: {r.givenAnswer ?? '—'}</span>
+              <span className="text-error">
+                {r.givenAnswer === null ? 'skipped' : `you: ${r.givenAnswer}`}
+              </span>
             )}
             <span className="text-dim">
               {(r.msToSubmit / 1000).toFixed(1)}s
