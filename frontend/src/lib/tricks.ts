@@ -14,6 +14,13 @@ export interface Trick {
   category: TrickCategory
   lesson: string
   tip: string
+  /**
+   * When false, this is a "general method" — it applies to almost any
+   * question of its type, so `detectTrick` skips it (to avoid blanket
+   * difficulty relief and false labeling). It still appears in the
+   * catalog and Learn mode. Defaults to true (a pattern shortcut).
+   */
+  autoDetect?: boolean
   applies: (q: Pick<Question, 'operation' | 'operands'>) => boolean
   generate: (rng: () => number) => Question
 }
@@ -62,6 +69,64 @@ function makeQuestion(
 export const TRICKS: Trick[] = [
   // ─── Multiplication ────────────────────────────────────────────────────
   {
+    slug: 'mult-1digit-placevalue',
+    name: 'Two-digit × one-digit (place value)',
+    category: 'multiplication',
+    autoDetect: false,
+    lesson:
+      'To multiply a 2-digit number by a single digit, split the 2-digit ' +
+      'number into its tens and units, multiply each part separately, then ' +
+      'add the two results.\n\n' +
+      'Example: 47 × 6 → 40 × 6 = 240, 7 × 6 = 42, then 240 + 42 = 282.',
+    tip: '2-digit × 1-digit: multiply the tens and the units separately, then add.',
+    applies: (q) => {
+      if (q.operation !== 'multiply' || q.operands.length !== 2) return false
+      const [a, b] = q.operands
+      const twoDigit = (n: number) => n >= 10 && n <= 99
+      const oneDigit = (n: number) => n >= 2 && n <= 9
+      return (twoDigit(a) && oneDigit(b)) || (oneDigit(a) && twoDigit(b))
+    },
+    generate: (rng) => {
+      const a = randInt(rng, 12, 99)
+      const b = randInt(rng, 3, 9)
+      return makeQuestion(
+        'multiply', [a, b], `${a} × ${b}`, a * b, 'mult-1digit-placevalue',
+      )
+    },
+  },
+  {
+    slug: 'mult-2digit-crisscross',
+    name: 'Two-digit × two-digit (criss-cross)',
+    category: 'multiplication',
+    autoDetect: false,
+    lesson:
+      'To multiply two 2-digit numbers, split each into tens and units and ' +
+      'build three pieces:\n' +
+      '  • units × units\n' +
+      '  • the cross sum: (tens of one × units of the other), both ways, ' +
+      'added together\n' +
+      '  • tens × tens\n\n' +
+      'Place units×units in the ones column, the cross sum in the tens ' +
+      'column, and tens×tens in the hundreds column — carrying as needed.\n\n' +
+      'Example: 23 × 41 → units 3×1 = 3 → cross 2×1 + 3×4 = 14 → ' +
+      'tens 2×4 = 8.\n' +
+      '3 in the ones, 14 in the tens (carry 1), 8 + 1 = 9 in the hundreds ' +
+      '→ 943.',
+    tip: '2-digit × 2-digit: units×units, cross sum, tens×tens — carry as you go.',
+    applies: (q) =>
+      q.operation === 'multiply' &&
+      q.operands.length === 2 &&
+      q.operands[0] >= 11 && q.operands[0] <= 99 &&
+      q.operands[1] >= 11 && q.operands[1] <= 99,
+    generate: (rng) => {
+      const a = randInt(rng, 11, 99)
+      const b = randInt(rng, 11, 99)
+      return makeQuestion(
+        'multiply', [a, b], `${a} × ${b}`, a * b, 'mult-2digit-crisscross',
+      )
+    },
+  },
+  {
     slug: 'times-11',
     name: 'Multiply by 11',
     category: 'multiplication',
@@ -102,6 +167,49 @@ export const TRICKS: Trick[] = [
     generate: (rng) => {
       const a = randInt(rng, 11, 99)
       return makeQuestion('multiply', [a, 9], `${a} × 9`, a * 9, 'times-9')
+    },
+  },
+  {
+    slug: 'times-3',
+    name: 'Multiply by 3',
+    category: 'multiplication',
+    lesson:
+      'Multiplying by 3 is doubling the number, then adding the number ' +
+      'once more.\n\nExample: 26 × 3 → double 26 = 52, then 52 + 26 = 78.',
+    tip: '×3: double the number, then add it once more.',
+    applies: (q) => q.operation === 'multiply' && q.operands.includes(3),
+    generate: (rng) => {
+      const a = randInt(rng, 11, 99)
+      return makeQuestion('multiply', [a, 3], `${a} × 3`, a * 3, 'times-3')
+    },
+  },
+  {
+    slug: 'times-6',
+    name: 'Multiply by 6',
+    category: 'multiplication',
+    lesson:
+      'Multiplying by 6 is multiplying by 3, then doubling (6 = 3 × 2).\n\n' +
+      'Example: 14 × 6 → 14 × 3 = 42, then double 42 = 84.',
+    tip: '×6: multiply by 3, then double.',
+    applies: (q) => q.operation === 'multiply' && q.operands.includes(6),
+    generate: (rng) => {
+      const a = randInt(rng, 11, 99)
+      return makeQuestion('multiply', [a, 6], `${a} × 6`, a * 6, 'times-6')
+    },
+  },
+  {
+    slug: 'times-7',
+    name: 'Multiply by 7',
+    category: 'multiplication',
+    lesson:
+      'Multiplying by 7 is multiplying by 5, then adding double the number ' +
+      '(7 = 5 + 2).\n\n' +
+      'Example: 18 × 7 → 18 × 5 = 90, double 18 = 36, then 90 + 36 = 126.',
+    tip: '×7: multiply by 5, then add double the number.',
+    applies: (q) => q.operation === 'multiply' && q.operands.includes(7),
+    generate: (rng) => {
+      const a = randInt(rng, 11, 99)
+      return makeQuestion('multiply', [a, 7], `${a} × 7`, a * 7, 'times-7')
     },
   },
   {
@@ -603,6 +711,51 @@ export const TRICKS: Trick[] = [
 
   // ─── Addition & Subtraction ────────────────────────────────────────────
   {
+    slug: 'add-left-to-right',
+    name: 'Left-to-right addition',
+    category: 'addition-subtraction',
+    autoDetect: false,
+    lesson:
+      'Add from the left, not the right: add the tens first, then the ' +
+      'units, then combine the two results.\n\n' +
+      'Example: 58 + 37 → tens 50 + 30 = 80, units 8 + 7 = 15, ' +
+      'then 80 + 15 = 95.',
+    tip: 'Add the tens, add the units, then combine the two results.',
+    applies: (q) =>
+      q.operation === 'add' &&
+      q.operands.length === 2 &&
+      q.operands[0] >= 10 && q.operands[0] <= 99 &&
+      q.operands[1] >= 10 && q.operands[1] <= 99,
+    generate: (rng) => {
+      const a = randInt(rng, 11, 99)
+      const b = randInt(rng, 11, 99)
+      return makeQuestion('add', [a, b], `${a} + ${b}`, a + b, 'add-left-to-right')
+    },
+  },
+  {
+    slug: 'sub-count-up',
+    name: 'Count-up subtraction',
+    category: 'addition-subtraction',
+    autoDetect: false,
+    lesson:
+      'Instead of taking away, count up from the smaller number to the ' +
+      'larger one — the total distance you travel is the answer. Step up to ' +
+      'the next round ten first, then the rest.\n\n' +
+      'Example: 84 − 67 → from 67 up to 70 is 3, from 70 up to 84 is 14, ' +
+      'so 3 + 14 = 17.',
+    tip: 'Subtraction: count up from the smaller number to the larger one.',
+    applies: (q) =>
+      q.operation === 'subtract' &&
+      q.operands.length === 2 &&
+      q.operands[0] > q.operands[1] &&
+      q.operands[1] >= 10 && q.operands[0] <= 99,
+    generate: (rng) => {
+      const a = randInt(rng, 30, 99)
+      const b = randInt(rng, 11, a - 1)
+      return makeQuestion('subtract', [a, b], `${a} − ${b}`, a - b, 'sub-count-up')
+    },
+  },
+  {
     slug: 'add-nine',
     name: 'Adding 9',
     category: 'addition-subtraction',
@@ -773,6 +926,30 @@ export const TRICKS: Trick[] = [
 
   // ─── Percentages ───────────────────────────────────────────────────────
   {
+    slug: 'percent-building-blocks',
+    name: 'Any percentage from building blocks',
+    category: 'percentages',
+    autoDetect: false,
+    lesson:
+      'Any percentage can be built from easy chunks: 10% (move the decimal ' +
+      'one place left), 5% (half of 10%), and 1% (move the decimal two ' +
+      'places left). Add the chunks you need.\n\n' +
+      'Example: 37% of 200 → 10% = 20, so 30% = 60; 5% = 10; 1% = 2, so ' +
+      '2% = 4. Total: 60 + 10 + 4 = 74.',
+    tip: 'Any %: build it from 10%, 5% and 1% chunks, then add them up.',
+    applies: (q) => q.operation === 'percent',
+    generate: (rng) => {
+      const pct = pick(rng, [12, 15, 35, 37, 45, 55, 65, 85])
+      const base = randInt(rng, 1, 20) * 100
+      // multiply before dividing: pct*base is a multiple of 100, so the
+      // result is an exact integer (avoids float error like 0.35*700).
+      return makeQuestion(
+        'percent', [pct, base], `${pct}% of ${base}`,
+        (pct * base) / 100, 'percent-building-blocks',
+      )
+    },
+  },
+  {
     slug: 'one-percent',
     name: '1% — move the decimal twice',
     category: 'percentages',
@@ -915,14 +1092,18 @@ export function detectTrick(
   q: Pick<Question, 'operation' | 'operands'>,
 ): string | null {
   for (const t of TRICKS) {
-    if (t.applies(q)) return t.slug
+    if (t.autoDetect !== false && t.applies(q)) return t.slug
   }
   return null
 }
 
-/** Every trick whose rule matches the question — all shortcuts that apply. */
+/**
+ * Every pattern-shortcut trick whose rule matches the question. Like
+ * `detectTrick`, general methods (`autoDetect: false`) are excluded — they
+ * apply too broadly to be useful as "shortcuts you could have used here".
+ */
 export function applicableTricks(
   q: Pick<Question, 'operation' | 'operands'>,
 ): Trick[] {
-  return TRICKS.filter((t) => t.applies(q))
+  return TRICKS.filter((t) => t.autoDetect !== false && t.applies(q))
 }

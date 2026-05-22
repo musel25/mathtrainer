@@ -45,3 +45,122 @@ describe('trick library', () => {
     expect(applicableTricks({ operation: 'add', operands: [12, 34] })).toEqual([])
   })
 })
+
+describe('multiplication shortcuts ×3 ×6 ×7', () => {
+  it('registers times-3, times-6, times-7 and detects them', () => {
+    expect(TRICK_BY_SLUG['times-3']).toBeTruthy()
+    expect(TRICK_BY_SLUG['times-6']).toBeTruthy()
+    expect(TRICK_BY_SLUG['times-7']).toBeTruthy()
+    expect(detectTrick({ operation: 'multiply', operands: [26, 3] })).toBe('times-3')
+    expect(detectTrick({ operation: 'multiply', operands: [23, 6] })).toBe('times-6')
+    expect(detectTrick({ operation: 'multiply', operands: [18, 7] })).toBe('times-7')
+  })
+
+  it('generates correct products', () => {
+    for (const slug of ['times-3', 'times-6', 'times-7']) {
+      const t = TRICK_BY_SLUG[slug]
+      for (let i = 0; i < 50; i++) {
+        const q = t.generate(Math.random)
+        const [a, b] = q.operands
+        expect(q.answer).toBe(a * b)
+      }
+    }
+  })
+})
+
+describe('general methods are excluded from detectTrick', () => {
+  it('mult-2digit-crisscross is registered as a general method', () => {
+    const t = TRICK_BY_SLUG['mult-2digit-crisscross']
+    expect(t).toBeTruthy()
+    expect(t.autoDetect).toBe(false)
+  })
+
+  it('detectTrick skips general methods', () => {
+    // 23 × 41 matches no auto-detected trick; only the general
+    // crisscross method applies, and it must be skipped.
+    expect(detectTrick({ operation: 'multiply', operands: [23, 41] })).toBeNull()
+  })
+
+  it('detectTrick still resolves auto-detected shortcuts', () => {
+    expect(detectTrick({ operation: 'multiply', operands: [47, 11] })).toBe('times-11')
+  })
+})
+
+describe('add-left-to-right', () => {
+  it('is a registered general method', () => {
+    const t = TRICK_BY_SLUG['add-left-to-right']
+    expect(t).toBeTruthy()
+    expect(t.autoDetect).toBe(false)
+  })
+
+  it('generates a 2-digit + 2-digit question with the correct answer', () => {
+    const t = TRICK_BY_SLUG['add-left-to-right']
+    for (let i = 0; i < 50; i++) {
+      const q = t.generate(Math.random)
+      const [a, b] = q.operands
+      expect(q.answer).toBe(a + b)
+      expect(t.applies(q)).toBe(true)
+    }
+  })
+
+  it('is skipped by detectTrick', () => {
+    // 53 + 24 matches no auto-detected addition trick.
+    expect(detectTrick({ operation: 'add', operands: [53, 24] })).toBeNull()
+  })
+})
+
+describe('sub-count-up', () => {
+  it('is a registered general method', () => {
+    const t = TRICK_BY_SLUG['sub-count-up']
+    expect(t).toBeTruthy()
+    expect(t.autoDetect).toBe(false)
+  })
+
+  it('generates a subtraction question with a positive correct answer', () => {
+    const t = TRICK_BY_SLUG['sub-count-up']
+    for (let i = 0; i < 50; i++) {
+      const q = t.generate(Math.random)
+      const [a, b] = q.operands
+      expect(q.answer).toBe(a - b)
+      expect(q.answer).toBeGreaterThan(0)
+      expect(t.applies(q)).toBe(true)
+    }
+  })
+})
+
+describe('percent-building-blocks', () => {
+  it('is a registered general method', () => {
+    const t = TRICK_BY_SLUG['percent-building-blocks']
+    expect(t).toBeTruthy()
+    expect(t.autoDetect).toBe(false)
+  })
+
+  it('generates a percent question with an integer correct answer', () => {
+    const t = TRICK_BY_SLUG['percent-building-blocks']
+    for (let i = 0; i < 50; i++) {
+      const q = t.generate(Math.random)
+      const [pct, base] = q.operands
+      expect(q.answer).toBe((pct * base) / 100)
+      expect(Number.isInteger(q.answer)).toBe(true)
+      expect(t.applies(q)).toBe(true)
+    }
+  })
+})
+
+describe('mult-1digit-placevalue', () => {
+  it('is a registered general method', () => {
+    const t = TRICK_BY_SLUG['mult-1digit-placevalue']
+    expect(t).toBeTruthy()
+    expect(t.autoDetect).toBe(false)
+  })
+
+  it('generates a 2-digit × 1-digit question with the correct answer', () => {
+    const t = TRICK_BY_SLUG['mult-1digit-placevalue']
+    for (let i = 0; i < 50; i++) {
+      const q = t.generate(Math.random)
+      const [a, b] = q.operands
+      expect(q.answer).toBe(a * b)
+      expect(t.applies(q)).toBe(true)
+    }
+  })
+})
