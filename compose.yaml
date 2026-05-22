@@ -1,0 +1,26 @@
+services:
+  mathtrainer:
+    build: .
+    image: mathtrainer:latest
+    container_name: mathtrainer
+    restart: unless-stopped
+    # Bound to localhost only — the reverse proxy (nginx) is the public door.
+    ports:
+      - "127.0.0.1:8001:8000"
+    volumes:
+      - mathtrainer-data:/data
+    environment:
+      - MATHTRAINER_DB=/data/mathtrainer.db
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  mathtrainer-data:
