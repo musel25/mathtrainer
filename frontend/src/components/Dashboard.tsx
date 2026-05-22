@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import type { Dashboard as DashboardData } from '../lib/types'
 import { getDashboard } from '../lib/api'
 import { CalendarHeatmap } from './CalendarHeatmap'
+import { StatTile } from './ui/StatTile'
+import { Button } from './ui/Button'
+import { ProgressBar } from './ui/ProgressBar'
 import { Line, LineChart } from 'recharts'
 
 interface Props {
@@ -25,45 +28,35 @@ export function Dashboard({
 
   if (error) {
     return (
-      <div style={{ textAlign: 'center', marginTop: '20vh' }}>
-        <h1>mathtrainer</h1>
-        <p style={{ color: 'crimson' }}>Could not load dashboard: {error}</p>
-        <button onClick={onStartDrill} style={{ fontSize: 18, padding: '10px 24px' }}>
-          Start daily drill
-        </button>
+      <div className="mx-auto max-w-[560px] px-4 py-16 text-center">
+        <h1 className="font-mono text-2xl">mathtrainer</h1>
+        <p className="mt-4 text-error">Could not load dashboard: {error}</p>
+        <Button variant="primary" onClick={onStartDrill} className="mt-6 px-7 py-3 text-base">
+          › start drill
+        </Button>
       </div>
     )
   }
   if (!data) {
-    return <div style={{ textAlign: 'center', marginTop: '20vh' }}>Loading…</div>
+    return <p className="py-32 text-center text-muted">Loading…</p>
   }
 
-  const pct = data.today.goal > 0
-    ? Math.min(100, (data.today.questions / data.today.goal) * 100)
-    : 0
-
   return (
-    <div style={{ maxWidth: 560, margin: '8vh auto', textAlign: 'center' }}>
-      <h1>mathtrainer</h1>
-      <div style={{ display: 'flex', justifyContent: 'space-around', margin: '24px 0' }}>
-        <div>
-          <div style={{ fontSize: 38 }}>🔥 {data.streak}</div>
-          <div style={{ color: '#888' }}>day streak</div>
-        </div>
-        <div>
-          <div style={{ fontSize: 38 }}>{data.rating.toFixed(0)}</div>
-          <div style={{ color: '#888' }}>rating</div>
-        </div>
-        <div>
-          <div style={{ fontSize: 38 }}>{data.totalSessions}</div>
-          <div style={{ color: '#888' }}>sessions</div>
-        </div>
+    <div className="mx-auto max-w-[560px] px-4 py-12 text-center">
+      <h1 className="font-mono text-2xl tracking-tight">mathtrainer</h1>
+
+      <div className="my-8 flex justify-around">
+        <StatTile label="Streak" value={data.streak} />
+        <StatTile label="Rating" value={data.rating.toFixed(0)} accent />
+        <StatTile label="Sessions" value={data.totalSessions} />
       </div>
 
       {data.ratingSparkline.length > 1 && (
-        <div style={{ margin: '8px 0' }}>
-          <div style={{ color: '#888', marginBottom: 2 }}>Rating trend</div>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <div className="my-4">
+          <div className="mb-1 text-[10px] uppercase tracking-[0.12em] text-muted">
+            Rating trend
+          </div>
+          <div className="flex justify-center">
             <LineChart
               width={240}
               height={48}
@@ -72,7 +65,7 @@ export function Dashboard({
               <Line
                 type="monotone"
                 dataKey="rating"
-                stroke="#239a3b"
+                stroke="#3fb950"
                 strokeWidth={2}
                 dot={false}
                 isAnimationActive={false}
@@ -82,37 +75,30 @@ export function Dashboard({
         </div>
       )}
 
-      <div style={{ margin: '20px 0' }}>
-        <div style={{ color: '#888', marginBottom: 4 }}>
-          Today: {data.today.questions} / {data.today.goal} questions
+      <div className="my-6 text-left">
+        <div className="mb-1.5 font-mono text-xs text-muted">
+          today  {data.today.questions}/{data.today.goal}
         </div>
-        <div style={{ background: '#ebedf0', borderRadius: 6, height: 14 }}>
-          <div style={{
-            width: `${pct}%`, height: 14, borderRadius: 6, background: '#239a3b',
-          }} />
-        </div>
+        <ProgressBar value={data.today.questions} max={data.today.goal} />
       </div>
 
-      <button
+      <Button
+        variant="primary"
         onClick={onStartDrill}
-        style={{ fontSize: 20, padding: '12px 28px', margin: '8px 0' }}
+        className="px-7 py-3 text-base"
       >
-        Start daily drill
-      </button>
+        › start drill
+      </Button>
 
-      <div style={{ margin: '28px 0 8px', color: '#888' }}>Activity</div>
+      <div className="mb-2 mt-8 text-[10px] uppercase tracking-[0.12em] text-muted">
+        Activity
+      </div>
       <CalendarHeatmap cells={data.heatmap} />
 
-      <div style={{ marginTop: 28 }}>
-        <button onClick={onOpenProgress} style={{ marginRight: 12, padding: '8px 18px' }}>
-          Progress
-        </button>
-        <button onClick={onOpenTricks} style={{ marginRight: 12, padding: '8px 18px' }}>
-          Tricks
-        </button>
-        <button onClick={onOpenSettings} style={{ padding: '8px 18px' }}>
-          Settings
-        </button>
+      <div className="mt-8 flex justify-center gap-3">
+        <Button onClick={onOpenProgress}>Progress</Button>
+        <Button onClick={onOpenTricks}>Tricks</Button>
+        <Button onClick={onOpenSettings}>Settings</Button>
       </div>
     </div>
   )

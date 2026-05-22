@@ -68,7 +68,7 @@ export default function App() {
   }
 
   if (screen === 'loading') {
-    return <div style={{ textAlign: 'center', marginTop: '20vh' }}>Loading…</div>
+    return <p className="py-32 text-center text-muted">Loading…</p>
   }
   if (screen === 'practice' && practice) {
     return (
