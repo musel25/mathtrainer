@@ -99,6 +99,25 @@ describe('add-left-to-right', () => {
   })
 })
 
+describe('sub-count-up', () => {
+  it('is a registered general method', () => {
+    const t = TRICK_BY_SLUG['sub-count-up']
+    expect(t).toBeTruthy()
+    expect(t.autoDetect).toBe(false)
+  })
+
+  it('generates a subtraction question with a positive correct answer', () => {
+    const t = TRICK_BY_SLUG['sub-count-up']
+    for (let i = 0; i < 50; i++) {
+      const q = t.generate(Math.random)
+      const [a, b] = q.operands
+      expect(q.answer).toBe(a - b)
+      expect(q.answer).toBeGreaterThan(0)
+      expect(t.applies(q)).toBe(true)
+    }
+  })
+})
+
 describe('mult-1digit-placevalue', () => {
   it('is a registered general method', () => {
     const t = TRICK_BY_SLUG['mult-1digit-placevalue']

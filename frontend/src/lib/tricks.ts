@@ -733,6 +733,29 @@ export const TRICKS: Trick[] = [
     },
   },
   {
+    slug: 'sub-count-up',
+    name: 'Count-up subtraction',
+    category: 'addition-subtraction',
+    autoDetect: false,
+    lesson:
+      'Instead of taking away, count up from the smaller number to the ' +
+      'larger one — the total distance you travel is the answer. Step up to ' +
+      'the next round ten first, then the rest.\n\n' +
+      'Example: 84 − 67 → from 67 up to 70 is 3, from 70 up to 84 is 14, ' +
+      'so 3 + 14 = 17.',
+    tip: 'Subtraction: count up from the smaller number to the larger one.',
+    applies: (q) =>
+      q.operation === 'subtract' &&
+      q.operands.length === 2 &&
+      q.operands[0] > q.operands[1] &&
+      q.operands[1] >= 10 && q.operands[0] <= 99,
+    generate: (rng) => {
+      const a = randInt(rng, 30, 99)
+      const b = randInt(rng, 11, a - 1)
+      return makeQuestion('subtract', [a, b], `${a} − ${b}`, a - b, 'sub-count-up')
+    },
+  },
+  {
     slug: 'add-nine',
     name: 'Adding 9',
     category: 'addition-subtraction',
