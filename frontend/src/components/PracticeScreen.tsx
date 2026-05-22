@@ -7,6 +7,7 @@ import {
 } from '../lib/session'
 import { TRICK_BY_SLUG } from '../lib/tricks'
 import { Button } from './ui/Button'
+import { Card } from './ui/Card'
 import { TrickExplanation } from './TrickExplanation'
 
 interface Props {
@@ -230,7 +231,11 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
 
       {missed && (
         <>
-          {trick && <TrickExplanation trick={trick} />}
+          {trick && (
+            <Card className="mt-4 w-full max-w-[420px] p-4">
+              <TrickExplanation trick={trick} />
+            </Card>
+          )}
           <Button
             variant="primary"
             onClick={handleNext}
