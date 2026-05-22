@@ -35,3 +35,25 @@ describe('trick library', () => {
     expect(detectTrick({ operation: 'add', operands: [12, 34] })).toBeNull()
   })
 })
+
+describe('multiplication shortcuts ×3 ×6 ×7', () => {
+  it('registers times-3, times-6, times-7 and detects them', () => {
+    expect(TRICK_BY_SLUG['times-3']).toBeTruthy()
+    expect(TRICK_BY_SLUG['times-6']).toBeTruthy()
+    expect(TRICK_BY_SLUG['times-7']).toBeTruthy()
+    expect(detectTrick({ operation: 'multiply', operands: [26, 3] })).toBe('times-3')
+    expect(detectTrick({ operation: 'multiply', operands: [23, 6] })).toBe('times-6')
+    expect(detectTrick({ operation: 'multiply', operands: [18, 7] })).toBe('times-7')
+  })
+
+  it('generates correct products', () => {
+    for (const slug of ['times-3', 'times-6', 'times-7']) {
+      const t = TRICK_BY_SLUG[slug]
+      for (let i = 0; i < 50; i++) {
+        const q = t.generate(Math.random)
+        const [a, b] = q.operands
+        expect(q.answer).toBe(a * b)
+      }
+    }
+  })
+})

@@ -105,6 +105,49 @@ export const TRICKS: Trick[] = [
     },
   },
   {
+    slug: 'times-3',
+    name: 'Multiply by 3',
+    category: 'multiplication',
+    lesson:
+      'Multiplying by 3 is doubling the number, then adding the number ' +
+      'once more.\n\nExample: 26 × 3 → double 26 = 52, then 52 + 26 = 78.',
+    tip: '×3: double the number, then add it once more.',
+    applies: (q) => q.operation === 'multiply' && q.operands.includes(3),
+    generate: (rng) => {
+      const a = randInt(rng, 11, 99)
+      return makeQuestion('multiply', [a, 3], `${a} × 3`, a * 3, 'times-3')
+    },
+  },
+  {
+    slug: 'times-6',
+    name: 'Multiply by 6',
+    category: 'multiplication',
+    lesson:
+      'Multiplying by 6 is multiplying by 3, then doubling (6 = 3 × 2).\n\n' +
+      'Example: 14 × 6 → 14 × 3 = 42, then double 42 = 84.',
+    tip: '×6: multiply by 3, then double.',
+    applies: (q) => q.operation === 'multiply' && q.operands.includes(6),
+    generate: (rng) => {
+      const a = randInt(rng, 11, 99)
+      return makeQuestion('multiply', [a, 6], `${a} × 6`, a * 6, 'times-6')
+    },
+  },
+  {
+    slug: 'times-7',
+    name: 'Multiply by 7',
+    category: 'multiplication',
+    lesson:
+      'Multiplying by 7 is multiplying by 5, then adding double the number ' +
+      '(7 = 5 + 2).\n\n' +
+      'Example: 18 × 7 → 18 × 5 = 90, double 18 = 36, then 90 + 36 = 126.',
+    tip: '×7: multiply by 5, then add double the number.',
+    applies: (q) => q.operation === 'multiply' && q.operands.includes(7),
+    generate: (rng) => {
+      const a = randInt(rng, 11, 99)
+      return makeQuestion('multiply', [a, 7], `${a} × 7`, a * 7, 'times-7')
+    },
+  },
+  {
     slug: 'times-12',
     name: 'Multiply by 12',
     category: 'multiplication',
