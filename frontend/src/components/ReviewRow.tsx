@@ -60,8 +60,8 @@ export function ReviewRow({ result: r }: Props) {
       ) : (
         <div className={ROW}>{content}</div>
       )}
-      {open && (
-        <div id={panelId} className="bg-bg px-3 py-3">
+      {hasTricks && (
+        <div id={panelId} hidden={!open} className="bg-bg px-3 py-3">
           {tricks.map((t) => (
             <TrickExplanation key={t.slug} trick={t} className="mb-3 last:mb-0" />
           ))}
