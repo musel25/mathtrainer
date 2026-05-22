@@ -534,11 +534,17 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
   const [input, setInput] = useState('')
   const [feedback, setFeedback] = useState<null | 'correct' | string>(null)
   const [elapsed, setElapsed] = useState(0)
-  const renderedAt = useRef(performance.now())
+  const renderedAt = useRef(0)
   const firstKeyAt = useRef<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const submittedRef = useRef(false)
+
+  // stamp the render time for each question — done in an effect, not during
+  // render, so the component stays pure (react-hooks/purity)
+  useEffect(() => {
+    renderedAt.current = performance.now()
+  }, [question])
 
   // live timer
   useEffect(() => {
@@ -573,7 +579,6 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
     setFeedback(null)
     firstKeyAt.current = null
     submittedRef.current = false
-    renderedAt.current = performance.now()
   }
 
   function submit(value: number) {
@@ -670,10 +675,13 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
 }
 ```
 
-- [ ] **Step 2: Verify build and tests**
+- [ ] **Step 2: Verify build, lint, and tests**
 
-Run: `cd frontend && npm run build && npm test`
-Expected: build PASS; all existing tests PASS.
+Run: `cd frontend && npm run build && npm run lint && npm test`
+Expected: build PASS; lint PASS with **zero** errors — this rewrite also fixes
+the pre-existing `react-hooks/purity` error (`performance.now()` was called in
+a `useRef` initializer during render; it is now stamped in an effect); all
+existing tests PASS.
 
 - [ ] **Step 3: Manually verify the behavior change**
 
