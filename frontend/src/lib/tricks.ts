@@ -1097,9 +1097,13 @@ export function detectTrick(
   return null
 }
 
-/** Every trick whose rule matches the question — all shortcuts that apply. */
+/**
+ * Every pattern-shortcut trick whose rule matches the question. Like
+ * `detectTrick`, general methods (`autoDetect: false`) are excluded — they
+ * apply too broadly to be useful as "shortcuts you could have used here".
+ */
 export function applicableTricks(
   q: Pick<Question, 'operation' | 'operands'>,
 ): Trick[] {
-  return TRICKS.filter((t) => t.applies(q))
+  return TRICKS.filter((t) => t.autoDetect !== false && t.applies(q))
 }
