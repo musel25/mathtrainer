@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import type { Question, QuestionResult } from '../lib/types'
 import {
   createSession, recordResult, isComplete, type SessionState,
@@ -18,13 +18,17 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
   const [input, setInput] = useState('')
   const [feedback, setFeedback] = useState<null | 'correct' | string>(null)
   const [elapsed, setElapsed] = useState(0)
-  const renderedAt = useRef(performance.now())
+  const renderedAt = useRef(0)
   const firstKeyAt = useRef<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const submittedRef = useRef(false)
 
-  const expectedLen = useMemo(() => String(question.answer).length, [question])
+  // stamp the render time for each question — done in an effect, not during
+  // render, so the component stays pure (react-hooks/purity)
+  useEffect(() => {
+    renderedAt.current = performance.now()
+  }, [question])
 
   // live timer
   useEffect(() => {
@@ -59,7 +63,6 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
     setFeedback(null)
     firstKeyAt.current = null
     submittedRef.current = false
-    renderedAt.current = performance.now()
   }
 
   function submit(value: number) {
@@ -76,7 +79,7 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
     }
     const updated = recordResult(session, result)
     setSession(updated)
-    setFeedback(isCorrect ? 'correct' : `Answer: ${question.answer}`)
+    setFeedback(isCorrect ? 'correct' : `answer ${question.answer}`)
     // brief feedback pause, then advance
     feedbackTimerRef.current = setTimeout(
       () => nextQuestion(updated),
@@ -90,10 +93,6 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
       firstKeyAt.current = performance.now()
     }
     setInput(digits)
-    if (!submittedRef.current && digits.length >= expectedLen) {
-      submittedRef.current = true
-      submit(Number(digits))
-    }
   }
 
   function onKeyDown(e: KeyboardEvent) {
@@ -103,29 +102,54 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
     }
   }
 
-  const progress = `${session.results.length + 1} / ${TOTAL}`
-  const seconds = (elapsed / 1000).toFixed(1)
+  const progress = `[${String(session.results.length + 1).padStart(2, '0')}`
+    + `/${String(TOTAL).padStart(2, '0')}]`
+  const seconds = (elapsed / 1000).toFixed(2)
+
+  const inputBorder = feedback === 'correct'
+    ? 'border-success'
+    : feedback
+      ? 'border-error'
+      : 'border-accent'
 
   return (
-    <div style={{ textAlign: 'center', marginTop: '14vh' }}>
-      <div style={{ color: '#888' }}>{progress} &middot; {seconds}s</div>
-      <div style={{ fontSize: 56, margin: '24px 0' }}>{question.prompt}</div>
+    <div className="mx-auto flex max-w-[420px] flex-col items-center px-4 pt-[15vh]">
+      <div className="flex w-full max-w-[300px] items-center gap-2.5">
+        <span className="font-mono text-xs text-success">{progress}</span>
+        <span className="h-px flex-1 bg-border" />
+        <span className="font-mono text-xs text-muted">{seconds}s</span>
+      </div>
+
+      <div className="mt-9 font-mono text-[44px] font-bold tracking-wide text-text">
+        {question.prompt} =
+      </div>
+
       <input
         ref={inputRef}
         value={input}
         inputMode="numeric"
+        aria-label="Your answer"
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}
         disabled={feedback !== null}
-        style={{ fontSize: 40, width: 180, textAlign: 'center' }}
+        className={`mt-6 w-[200px] rounded-md border bg-surface px-4 py-2.5 text-center
+          font-mono text-3xl text-text caret-accent outline-none transition-colors
+          duration-100 focus:shadow-[0_0_0_3px_rgba(47,129,247,0.18)]
+          disabled:opacity-70 ${inputBorder}`}
       />
-      <div style={{ height: 40, marginTop: 16, fontSize: 24 }}>
-        {feedback === 'correct' && <span style={{ color: 'green' }}>✓</span>}
+
+      <div className="mt-2 h-4 font-mono text-xs text-dim">
+        {feedback === null && 'press Enter'}
+      </div>
+
+      <div aria-live="polite" className="mt-1 h-7 font-mono text-sm">
+        {feedback === 'correct' && <span className="text-success">✓ correct</span>}
         {feedback && feedback !== 'correct' && (
-          <span style={{ color: 'crimson' }}>{feedback}</span>
+          <span className="text-error">✗ {feedback}</span>
         )}
       </div>
-      <div style={{ height: 28, marginTop: 4, color: '#a6611a' }}>
+
+      <div className="mt-1 h-7 text-sm text-streak">
         {feedback !== null && question.features.trickSlug && (
           <span>💡 {TRICK_BY_SLUG[question.features.trickSlug]?.tip}</span>
         )}
