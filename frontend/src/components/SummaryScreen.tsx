@@ -3,6 +3,7 @@ import { createSession, recordResult, sessionStats } from '../lib/session'
 import type { SessionSummary } from '../lib/api'
 import { Card } from './ui/Card'
 import { Button } from './ui/Button'
+import { ReviewRow } from './ReviewRow'
 
 interface Props {
   results: QuestionResult[]
@@ -93,25 +94,7 @@ export function SummaryScreen({
       </div>
       <Card className="mb-6 divide-y divide-border">
         {results.map((r, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-3 px-3 py-2 font-mono text-sm"
-          >
-            <span className={r.isCorrect ? 'text-success' : 'text-error'}>
-              {r.isCorrect ? '✓' : '✗'}
-            </span>
-            <span className="flex-1 text-text">
-              {r.question.prompt} = {r.question.answer}
-            </span>
-            {!r.isCorrect && (
-              <span className="text-error">
-                {r.givenAnswer === null ? 'skipped' : `you: ${r.givenAnswer}`}
-              </span>
-            )}
-            <span className="text-dim">
-              {(r.msToSubmit / 1000).toFixed(1)}s
-            </span>
-          </div>
+          <ReviewRow result={r} key={i} />
         ))}
       </Card>
 

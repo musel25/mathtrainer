@@ -1096,3 +1096,10 @@ export function detectTrick(
   }
   return null
 }
+
+/** Every trick whose rule matches the question — all shortcuts that apply. */
+export function applicableTricks(
+  q: Pick<Question, 'operation' | 'operands'>,
+): Trick[] {
+  return TRICKS.filter((t) => t.applies(q))
+}
