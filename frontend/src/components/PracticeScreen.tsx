@@ -27,6 +27,7 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const feedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const submittedRef = useRef(false)
+  const sessionRef = useRef(session)
 
   // a miss (wrong answer or skip): the screen pauses on the explanation
   const missed = feedback !== null && feedback !== 'correct'
@@ -60,6 +61,11 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
   useEffect(() => {
     inputRef.current?.focus()
   }, [question])
+
+  // keep the latest session reachable from the keydown listener
+  useEffect(() => {
+    sessionRef.current = session
+  }, [session])
 
   function nextQuestion(updated: SessionState) {
     feedbackTimerRef.current = null
@@ -133,7 +139,7 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
   }
 
   function handleNext() {
-    nextQuestion(session)
+    nextQuestion(sessionRef.current)
   }
 
   // While paused on a miss, Enter/Space advances. Arming is deferred to a
