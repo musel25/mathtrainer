@@ -76,6 +76,29 @@ describe('general methods are excluded from detectTrick', () => {
   })
 })
 
+describe('add-left-to-right', () => {
+  it('is a registered general method', () => {
+    const t = TRICK_BY_SLUG['add-left-to-right']
+    expect(t).toBeTruthy()
+    expect(t.autoDetect).toBe(false)
+  })
+
+  it('generates a 2-digit + 2-digit question with the correct answer', () => {
+    const t = TRICK_BY_SLUG['add-left-to-right']
+    for (let i = 0; i < 50; i++) {
+      const q = t.generate(Math.random)
+      const [a, b] = q.operands
+      expect(q.answer).toBe(a + b)
+      expect(t.applies(q)).toBe(true)
+    }
+  })
+
+  it('is skipped by detectTrick', () => {
+    // 53 + 24 matches no auto-detected addition trick.
+    expect(detectTrick({ operation: 'add', operands: [53, 24] })).toBeNull()
+  })
+})
+
 describe('mult-1digit-placevalue', () => {
   it('is a registered general method', () => {
     const t = TRICK_BY_SLUG['mult-1digit-placevalue']

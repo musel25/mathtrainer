@@ -711,6 +711,28 @@ export const TRICKS: Trick[] = [
 
   // ─── Addition & Subtraction ────────────────────────────────────────────
   {
+    slug: 'add-left-to-right',
+    name: 'Left-to-right addition',
+    category: 'addition-subtraction',
+    autoDetect: false,
+    lesson:
+      'Add from the left, not the right: add the tens first, then the ' +
+      'units, then combine the two results.\n\n' +
+      'Example: 58 + 37 → tens 50 + 30 = 80, units 8 + 7 = 15, ' +
+      'then 80 + 15 = 95.',
+    tip: 'Add the tens, add the units, then combine the two results.',
+    applies: (q) =>
+      q.operation === 'add' &&
+      q.operands.length === 2 &&
+      q.operands[0] >= 10 && q.operands[0] <= 99 &&
+      q.operands[1] >= 10 && q.operands[1] <= 99,
+    generate: (rng) => {
+      const a = randInt(rng, 11, 99)
+      const b = randInt(rng, 11, 99)
+      return makeQuestion('add', [a, b], `${a} + ${b}`, a + b, 'add-left-to-right')
+    },
+  },
+  {
     slug: 'add-nine',
     name: 'Adding 9',
     category: 'addition-subtraction',
