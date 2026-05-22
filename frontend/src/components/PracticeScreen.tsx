@@ -136,19 +136,25 @@ export function PracticeScreen({ questionSource, total, onComplete }: Props) {
     nextQuestion(session)
   }
 
-  // While paused on a miss, Enter/Space advances. The listener is registered
-  // only AFTER the miss state commits, so the keypress that submitted the
-  // answer (already fired) cannot bleed through and skip the explanation.
+  // While paused on a miss, Enter/Space advances. Arming is deferred to a
+  // later task: the keypress that submitted the answer is still propagating
+  // when this effect runs, so an immediately-live listener would catch it and
+  // skip the explanation.
   useEffect(() => {
     if (!missed) return
+    let armed = false
+    const armId = setTimeout(() => { armed = true }, 0)
     function advance(e: KeyboardEvent) {
-      if (e.key === 'Enter' || e.key === ' ') {
+      if (armed && (e.key === 'Enter' || e.key === ' ')) {
         e.preventDefault()
         handleNext()
       }
     }
     window.addEventListener('keydown', advance)
-    return () => window.removeEventListener('keydown', advance)
+    return () => {
+      clearTimeout(armId)
+      window.removeEventListener('keydown', advance)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [missed])
 
