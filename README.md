@@ -1,8 +1,8 @@
 # mathtrainer
 
-A local, single-user mental-math trainer with an adaptive personal difficulty
-model. Drill timed arithmetic, learn shortcuts, and track your progress — all
-on your own machine, no accounts, no cloud.
+A single-user mental-math trainer with an adaptive personal difficulty model.
+Drill timed arithmetic, learn shortcuts, and track your progress. Run it
+locally, or self-host it — see [Deployment](#deployment).
 
 See `docs/superpowers/specs/` for the design and `docs/superpowers/plans/` for
 implementation plans.
@@ -29,3 +29,11 @@ Then open http://localhost:8000.
 - Backend tests: `uv run pytest`
 - Frontend tests: `cd frontend && npm test`
 - Frontend dev server (with API proxy): `cd frontend && npm run dev`
+
+## Deployment
+
+A live instance runs at **https://math.musel.dev** (password-protected).
+
+The app ships with a containerized deploy — a multi-stage `Dockerfile` and
+`compose.yaml`, fronted by nginx with HTTPS and a basic-auth gate. See
+[`DEPLOY.md`](DEPLOY.md) for the full architecture and operations guide.
