@@ -118,6 +118,25 @@ describe('sub-count-up', () => {
   })
 })
 
+describe('percent-building-blocks', () => {
+  it('is a registered general method', () => {
+    const t = TRICK_BY_SLUG['percent-building-blocks']
+    expect(t).toBeTruthy()
+    expect(t.autoDetect).toBe(false)
+  })
+
+  it('generates a percent question with an integer correct answer', () => {
+    const t = TRICK_BY_SLUG['percent-building-blocks']
+    for (let i = 0; i < 50; i++) {
+      const q = t.generate(Math.random)
+      const [pct, base] = q.operands
+      expect(q.answer).toBe((pct / 100) * base)
+      expect(Number.isInteger(q.answer)).toBe(true)
+      expect(t.applies(q)).toBe(true)
+    }
+  })
+})
+
 describe('mult-1digit-placevalue', () => {
   it('is a registered general method', () => {
     const t = TRICK_BY_SLUG['mult-1digit-placevalue']

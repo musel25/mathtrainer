@@ -926,6 +926,28 @@ export const TRICKS: Trick[] = [
 
   // ─── Percentages ───────────────────────────────────────────────────────
   {
+    slug: 'percent-building-blocks',
+    name: 'Any percentage from building blocks',
+    category: 'percentages',
+    autoDetect: false,
+    lesson:
+      'Any percentage can be built from easy chunks: 10% (move the decimal ' +
+      'one place left), 5% (half of 10%), and 1% (move the decimal two ' +
+      'places left). Add the chunks you need.\n\n' +
+      'Example: 37% of 200 → 10% = 20, so 30% = 60; 5% = 10; 1% = 2, so ' +
+      '2% = 4. Total: 60 + 10 + 4 = 74.',
+    tip: 'Any %: build it from 10%, 5% and 1% chunks, then add them up.',
+    applies: (q) => q.operation === 'percent',
+    generate: (rng) => {
+      const pct = pick(rng, [12, 15, 32, 37, 45, 48, 65, 85])
+      const base = randInt(rng, 1, 20) * 100
+      return makeQuestion(
+        'percent', [pct, base], `${pct}% of ${base}`,
+        (pct / 100) * base, 'percent-building-blocks',
+      )
+    },
+  },
+  {
     slug: 'one-percent',
     name: '1% — move the decimal twice',
     category: 'percentages',
