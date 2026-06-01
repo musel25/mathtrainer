@@ -35,9 +35,10 @@ CREATE TABLE IF NOT EXISTS model_state (
 );
 
 CREATE TABLE IF NOT EXISTS settings (
-    id              INTEGER PRIMARY KEY CHECK (id = 1),
-    daily_goal      INTEGER NOT NULL DEFAULT 20,
-    session_length  INTEGER NOT NULL DEFAULT 10
+    id                  INTEGER PRIMARY KEY CHECK (id = 1),
+    daily_goal          INTEGER NOT NULL DEFAULT 20,
+    session_length      INTEGER NOT NULL DEFAULT 10,
+    enabled_operations  TEXT    NOT NULL DEFAULT '["add","subtract","multiply","divide"]'
 );
 
 CREATE TABLE IF NOT EXISTS trick_state (

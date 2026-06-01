@@ -107,3 +107,33 @@ describe('generateQuestion operation weighting', () => {
     expect(seen.size).toBe(6)
   })
 })
+
+describe('generateQuestion enabled operations', () => {
+  it('only draws from the enabled operations', () => {
+    const enabled: Operation[] = ['multiply', 'divide']
+    for (let i = 0; i < 1000; i++) {
+      const q = generateQuestion({ min: 1, max: 100 }, Math.random, {}, enabled)
+      expect(enabled).toContain(q.operation)
+    }
+  })
+
+  it('excludes square and percent under the default enabled set', () => {
+    const enabled: Operation[] = ['add', 'subtract', 'multiply', 'divide']
+    const seen = new Set<string>()
+    for (let i = 0; i < 2000; i++) {
+      seen.add(
+        generateQuestion({ min: 1, max: 100 }, Math.random, {}, enabled).operation,
+      )
+    }
+    expect(seen.has('square')).toBe(false)
+    expect(seen.has('percent')).toBe(false)
+    expect(seen.size).toBe(4)
+  })
+
+  it('can drill a single enabled operation', () => {
+    for (let i = 0; i < 300; i++) {
+      const q = generateQuestion({ min: 1, max: 100 }, Math.random, {}, ['square'])
+      expect(q.operation).toBe('square')
+    }
+  })
+})

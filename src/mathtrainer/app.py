@@ -42,11 +42,13 @@ def session_plan() -> SessionPlan:
     try:
         state = db.load_model_state(conn) or model.default_model_state()
         band = model.target_band(state)
+        settings = db.load_settings(conn)
         return SessionPlan(
             rating=state["rating"],
             target_band={"min": band["min"], "max": band["max"]},
             operation_ratings=model.operation_ratings(state),
-            session_length=db.load_settings(conn)["session_length"],
+            session_length=settings["session_length"],
+            enabled_operations=settings["enabled_operations"],
         )
     finally:
         conn.close()

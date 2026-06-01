@@ -29,6 +29,9 @@ DEFAULT_BASELINE_MS = [1500, 2200, 3000, 4000, 5200,
 WEAK_MIN_SAMPLES = 3
 WEAK_RATING_MARGIN = 8.0       # operation is "weak" when its rating is this far below overall
 OPERATIONS = ["add", "subtract", "multiply", "divide", "square", "percent"]
+# Operations a fresh install drills by default — squaring and percentages are
+# opt-in via Settings.
+DEFAULT_ENABLED_OPERATIONS = ["add", "subtract", "multiply", "divide"]
 
 
 def bin_index(difficulty: float) -> int:

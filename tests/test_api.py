@@ -88,18 +88,61 @@ def test_session_plan_default_for_fresh_db(client):
     }
     assert ratings["add"] == 50.0
     assert body["session_length"] == 10
+    assert body["enabled_operations"] == ["add", "subtract", "multiply", "divide"]
 
 
 def test_settings_get_and_put(client):
     resp = client.get("/api/settings")
     assert resp.status_code == 200
-    assert resp.json() == {"daily_goal": 20, "session_length": 10}
+    assert resp.json() == {
+        "daily_goal": 20,
+        "session_length": 10,
+        "enabled_operations": ["add", "subtract", "multiply", "divide"],
+    }
 
-    resp = client.put("/api/settings", json={"daily_goal": 25, "session_length": 12})
+    resp = client.put("/api/settings", json={
+        "daily_goal": 25,
+        "session_length": 12,
+        "enabled_operations": ["add", "square", "percent"],
+    })
     assert resp.status_code == 200
     assert client.get("/api/settings").json() == {
-        "daily_goal": 25, "session_length": 12,
+        "daily_goal": 25,
+        "session_length": 12,
+        "enabled_operations": ["add", "square", "percent"],
     }
+
+
+def test_settings_put_rejects_empty_operations(client):
+    resp = client.put("/api/settings", json={
+        "daily_goal": 20, "session_length": 10, "enabled_operations": [],
+    })
+    assert resp.status_code == 422
+
+
+def test_settings_put_rejects_unknown_operations(client):
+    resp = client.put("/api/settings", json={
+        "daily_goal": 20, "session_length": 10,
+        "enabled_operations": ["add", "cube"],
+    })
+    assert resp.status_code == 422
+
+
+def test_settings_put_omitting_operations_uses_default(client):
+    resp = client.put("/api/settings", json={"daily_goal": 20, "session_length": 10})
+    assert resp.status_code == 200
+    assert resp.json()["enabled_operations"] == [
+        "add", "subtract", "multiply", "divide",
+    ]
+
+
+def test_session_plan_reflects_enabled_operations(client):
+    client.put("/api/settings", json={
+        "daily_goal": 20, "session_length": 10,
+        "enabled_operations": ["multiply", "divide"],
+    })
+    body = client.get("/api/session-plan").json()
+    assert body["enabled_operations"] == ["multiply", "divide"]
 
 
 def _finish_a_session(client, n_correct, n_total, difficulty=45.0):

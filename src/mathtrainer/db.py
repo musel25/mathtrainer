@@ -58,6 +58,13 @@ def _migrate(conn: sqlite3.Connection) -> None:
     if "rating_after" not in cols:
         conn.execute("ALTER TABLE sessions ADD COLUMN rating_after REAL")
 
+    settings_cols = {r["name"] for r in conn.execute("PRAGMA table_info(settings)")}
+    if settings_cols and "enabled_operations" not in settings_cols:
+        conn.execute(
+            "ALTER TABLE settings ADD COLUMN enabled_operations TEXT NOT NULL "
+            "DEFAULT '[\"add\",\"subtract\",\"multiply\",\"divide\"]'"
+        )
+
     ms_cols = {r["name"] for r in conn.execute("PRAGMA table_info(model_state)")}
     if "residuals" in ms_cols and "operations" not in ms_cols:
         conn.execute(
@@ -176,24 +183,42 @@ def save_model_state(conn: sqlite3.Connection, state: dict) -> None:
     conn.commit()
 
 
-_DEFAULT_SETTINGS = {"daily_goal": 20, "session_length": 10}
+_DEFAULT_SETTINGS = {
+    "daily_goal": 20,
+    "session_length": 10,
+    "enabled_operations": list(model.DEFAULT_ENABLED_OPERATIONS),
+}
 
 
 def load_settings(conn: sqlite3.Connection) -> dict:
     row = conn.execute(
-        "SELECT daily_goal, session_length FROM settings WHERE id = 1"
+        "SELECT daily_goal, session_length, enabled_operations "
+        "FROM settings WHERE id = 1"
     ).fetchone()
     if row is None:
-        return dict(_DEFAULT_SETTINGS)
-    return {"daily_goal": row["daily_goal"], "session_length": row["session_length"]}
+        return {
+            **_DEFAULT_SETTINGS,
+            "enabled_operations": list(_DEFAULT_SETTINGS["enabled_operations"]),
+        }
+    return {
+        "daily_goal": row["daily_goal"],
+        "session_length": row["session_length"],
+        "enabled_operations": json.loads(row["enabled_operations"]),
+    }
 
 
 def save_settings(conn: sqlite3.Connection, settings: dict) -> None:
     conn.execute(
-        "INSERT INTO settings (id, daily_goal, session_length) VALUES (1, ?, ?) "
+        "INSERT INTO settings (id, daily_goal, session_length, enabled_operations) "
+        "VALUES (1, ?, ?, ?) "
         "ON CONFLICT(id) DO UPDATE SET daily_goal = excluded.daily_goal, "
-        "session_length = excluded.session_length",
-        (settings["daily_goal"], settings["session_length"]),
+        "session_length = excluded.session_length, "
+        "enabled_operations = excluded.enabled_operations",
+        (
+            settings["daily_goal"],
+            settings["session_length"],
+            json.dumps(settings["enabled_operations"]),
+        ),
     )
     conn.commit()
 
