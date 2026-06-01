@@ -120,10 +120,40 @@ def test_finalize_session_records_ratings(tmp_path):
 def test_settings_defaults_and_save(tmp_path):
     conn = _conn(tmp_path)
     s = db.load_settings(conn)
-    assert s == {"daily_goal": 20, "session_length": 10}
+    assert s == {
+        "daily_goal": 20,
+        "session_length": 10,
+        "enabled_operations": ["add", "subtract", "multiply", "divide"],
+    }
 
-    db.save_settings(conn, {"daily_goal": 30, "session_length": 15})
-    assert db.load_settings(conn) == {"daily_goal": 30, "session_length": 15}
+    db.save_settings(conn, {
+        "daily_goal": 30,
+        "session_length": 15,
+        "enabled_operations": ["add", "multiply", "percent"],
+    })
+    assert db.load_settings(conn) == {
+        "daily_goal": 30,
+        "session_length": 15,
+        "enabled_operations": ["add", "multiply", "percent"],
+    }
+
+
+def test_settings_migration_adds_enabled_operations(tmp_path):
+    """A settings table from before the column existed picks up the default."""
+    conn = db.get_connection(tmp_path / "legacy_settings.db")
+    conn.executescript(
+        "CREATE TABLE settings (id INTEGER PRIMARY KEY CHECK (id = 1), "
+        "daily_goal INTEGER NOT NULL DEFAULT 20, "
+        "session_length INTEGER NOT NULL DEFAULT 10);"
+        "INSERT INTO settings (id, daily_goal, session_length) VALUES (1, 22, 11);"
+    )
+    conn.commit()
+    db.init_db(conn)
+    assert db.load_settings(conn) == {
+        "daily_goal": 22,
+        "session_length": 11,
+        "enabled_operations": ["add", "subtract", "multiply", "divide"],
+    }
 
 
 def test_trick_state_record_and_read(tmp_path):

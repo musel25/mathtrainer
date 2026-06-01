@@ -77,6 +77,7 @@ export async function getSessionPlan(): Promise<SessionPlan> {
     targetBand: { min: raw.target_band.min, max: raw.target_band.max },
     operationRatings: raw.operation_ratings as Record<Operation, number>,
     sessionLength: raw.session_length as number,
+    enabledOperations: raw.enabled_operations as Operation[],
   }
 }
 
@@ -113,7 +114,11 @@ export async function getSettings(): Promise<Settings> {
   const resp = await fetch('/api/settings')
   if (!resp.ok) throw new Error(`getSettings failed: ${resp.status}`)
   const r = await resp.json()
-  return { dailyGoal: r.daily_goal, sessionLength: r.session_length }
+  return {
+    dailyGoal: r.daily_goal,
+    sessionLength: r.session_length,
+    enabledOperations: r.enabled_operations as Operation[],
+  }
 }
 
 export async function putSettings(s: Settings): Promise<void> {
@@ -121,7 +126,9 @@ export async function putSettings(s: Settings): Promise<void> {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      daily_goal: s.dailyGoal, session_length: s.sessionLength,
+      daily_goal: s.dailyGoal,
+      session_length: s.sessionLength,
+      enabled_operations: s.enabledOperations,
     }),
   })
   if (!resp.ok) throw new Error(`putSettings failed: ${resp.status}`)

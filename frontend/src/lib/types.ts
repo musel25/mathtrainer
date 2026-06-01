@@ -35,6 +35,7 @@ export interface SessionPlan {
   targetBand: DifficultyBand
   operationRatings: Record<Operation, number>
   sessionLength: number
+  enabledOperations: Operation[]
 }
 
 export interface HeatmapCell {
@@ -73,6 +74,7 @@ export interface Progress {
 export interface Settings {
   dailyGoal: number
   sessionLength: number
+  enabledOperations: Operation[]
 }
 
 export interface TrickStat {
